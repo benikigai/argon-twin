@@ -1,0 +1,14 @@
+.env
+.env.*
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.vercel/
+runs/
+capture/*.MOV
+capture/*.mov
+capture/*.mp4
+capture/frames/
+capture/colmap/
+.claude/
