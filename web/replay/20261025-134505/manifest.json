@@ -1,0 +1,626 @@
+{
+  "contract_version": "1.0.3",
+  "run_id": "20261025-134505",
+  "created_at": "2026-10-25T20:45:05.788909Z",
+  "video_path": null,
+  "scene": {
+    "table_shape": "round",
+    "table_size_m": [
+      0.8,
+      0.8
+    ],
+    "table_height_m": 0.74,
+    "objects": [
+      {
+        "name": "celsius_can",
+        "kind": "cylinder",
+        "size_m": [
+          0.029,
+          0.155
+        ],
+        "pos_m": [
+          0.34063638,
+          0.18702933,
+          0.0
+        ],
+        "yaw_deg": 0.0,
+        "mass_kg": 0.35,
+        "graspable": true,
+        "visual_splat_path": "celsius-can.splat"
+      },
+      {
+        "name": "upper_screen",
+        "kind": "box",
+        "size_m": [
+          0.37799283221839564,
+          0.02807721286591519,
+          0.25191769866522307
+        ],
+        "pos_m": [
+          0.009415069667664526,
+          0.21007626389232664,
+          0.19467514478478282
+        ],
+        "yaw_deg": 16.28008069713922,
+        "mass_kg": 0.3,
+        "graspable": false,
+        "visual_splat_path": null
+      },
+      {
+        "name": "lower_screen",
+        "kind": "box",
+        "size_m": [
+          0.3629736562484939,
+          0.07140104182827156,
+          0.24357593400189922
+        ],
+        "pos_m": [
+          0.0006267657539258675,
+          0.1648428468508854,
+          -0.004691222033609702
+        ],
+        "yaw_deg": 14.222270151551504,
+        "mass_kg": 0.3,
+        "graspable": false,
+        "visual_splat_path": null
+      },
+      {
+        "name": "laptop_base",
+        "kind": "box",
+        "size_m": [
+          0.3771428194354464,
+          0.25066433919701575,
+          0.05027142802470944
+        ],
+        "pos_m": [
+          0.03712224613894825,
+          0.0013836789933789478,
+          -0.012687001552621271
+        ],
+        "yaw_deg": 9.567160307174497,
+        "mass_kg": 0.3,
+        "graspable": false,
+        "visual_splat_path": null
+      },
+      {
+        "name": "left_screen",
+        "kind": "box",
+        "size_m": [
+          0.33035017374155645,
+          0.11671170565356728,
+          0.252716540404145
+        ],
+        "pos_m": [
+          -0.3356784222881884,
+          0.01306929159716469,
+          -0.00897699253561118
+        ],
+        "yaw_deg": 51.91400494122206,
+        "mass_kg": 0.3,
+        "graspable": false,
+        "visual_splat_path": null
+      },
+      {
+        "name": "left_base",
+        "kind": "box",
+        "size_m": [
+          0.25133987953016607,
+          0.2399365412113273,
+          0.04399165561683052
+        ],
+        "pos_m": [
+          -0.3005411556129564,
+          -0.07888320744205517,
+          -0.004057023550882233
+        ],
+        "yaw_deg": 29.70796359191995,
+        "mass_kg": 0.3,
+        "graspable": false,
+        "visual_splat_path": null
+      }
+    ],
+    "task_object": "celsius_can",
+    "left_arm_base_m": [
+      -0.55,
+      -0.25,
+      0.0
+    ],
+    "right_arm_base_m": [
+      0.55,
+      -0.25,
+      0.0
+    ],
+    "handover_point_m": [
+      1.05,
+      -0.75,
+      0.55
+    ],
+    "target_m": [
+      -0.15,
+      -0.28,
+      0.0
+    ],
+    "evidence": [
+      "Table, can and laptop: hand estimates from IMG_1272 frames.",
+      "scene.handover_point_m is deliberately out of both arms' reach, so the critique input never contains a passing handover point. The run executes the plan's own handover point.",
+      "Screen and laptop collision boxes fitted to COLMAP correspondences in 0004.jpg using the trained splat table frame. Manually selected panel corners, 8 mm inflation; boxes conservatively enclose tilt. Unobserved surfaces remain uncertain. Robot pedestals and the virtual task can use the clear foreground workspace; this is a new layout, not an old run with changed graphics.",
+      "Robot pedestals and virtual task can relocated to the clear foreground side of the fitted laptop obstacles. This is a new scene; prior runs did not test these collision surfaces.",
+      "Celsius can center fitted from photographed label tracks; radius and height approximate, mass assumed. Segmented visual Gaussians removed from desk background and attached to physical cylinder."
+    ],
+    "source": "manual",
+    "pickup_arm": "right",
+    "background_splat_path": "desk-without-celsius.splat"
+  },
+  "world_build": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "mode": "MANUAL",
+      "plan": {
+        "grasp_height_offset_m": 0.0,
+        "approach_yaw_deg": 0.0,
+        "pregrasp_clearance_m": 0.08,
+        "lift_height_m": 0.16,
+        "handover_point_m": [
+          0.0,
+          0.21,
+          0.3
+        ],
+        "handover_yaw_offset_deg": 0.0,
+        "gripper_close_delay_s": 0.25,
+        "release_delay_s": 0.25,
+        "release_height_m": 0.02,
+        "max_speed_m_s": 0.25
+      },
+      "sim": {
+        "attempt": 1,
+        "metrics": {
+          "can_final_pos_m": [
+            0.08199675642812158,
+            0.9428930265098456,
+            -0.7112072347788677
+          ],
+          "can_final_xy_error_m": 1.2447047237315279,
+          "can_min_z_m": -0.7621113952532803,
+          "can_final_speed_m_s": 0.06025411488733458,
+          "left_grasped": false,
+          "right_grasped": true,
+          "handover_completed": false,
+          "max_arm_table_contact_force_n": 0.0,
+          "max_arm_obstacle_contact_force_n": 216.19397914803062,
+          "max_arm_obstacle_penetration_m": 0.0012091950181655857,
+          "max_object_obstacle_penetration_m": 0.009986115136193702,
+          "grasp_assist_used": true,
+          "failure_phase": "handover",
+          "sim_time_s": 20.03999999999977,
+          "wall_time_ms": 1933.9501670037862
+        },
+        "keyframes": [
+          {
+            "label": "grasp_overhead",
+            "phase": "grasp",
+            "t_s": 4.519999999999724,
+            "camera": "overhead",
+            "path": "grasp-overhead.png"
+          },
+          {
+            "label": "grasp_front",
+            "phase": "grasp",
+            "t_s": 4.519999999999724,
+            "camera": "front",
+            "path": "grasp-front.png"
+          },
+          {
+            "label": "grasp_left_wrist",
+            "phase": "grasp",
+            "t_s": 4.519999999999724,
+            "camera": "left_wrist",
+            "path": "grasp-left_wrist.png"
+          },
+          {
+            "label": "grasp_right_wrist",
+            "phase": "grasp",
+            "t_s": 4.519999999999724,
+            "camera": "right_wrist",
+            "path": "grasp-right_wrist.png"
+          },
+          {
+            "label": "lift_overhead",
+            "phase": "lift",
+            "t_s": 5.759999999999588,
+            "camera": "overhead",
+            "path": "lift-overhead.png"
+          },
+          {
+            "label": "lift_front",
+            "phase": "lift",
+            "t_s": 5.759999999999588,
+            "camera": "front",
+            "path": "lift-front.png"
+          },
+          {
+            "label": "lift_left_wrist",
+            "phase": "lift",
+            "t_s": 5.759999999999588,
+            "camera": "left_wrist",
+            "path": "lift-left_wrist.png"
+          },
+          {
+            "label": "lift_right_wrist",
+            "phase": "lift",
+            "t_s": 5.759999999999588,
+            "camera": "right_wrist",
+            "path": "lift-right_wrist.png"
+          },
+          {
+            "label": "handover_overhead",
+            "phase": "handover",
+            "t_s": 11.74000000000059,
+            "camera": "overhead",
+            "path": "handover-overhead.png"
+          },
+          {
+            "label": "handover_front",
+            "phase": "handover",
+            "t_s": 11.74000000000059,
+            "camera": "front",
+            "path": "handover-front.png"
+          },
+          {
+            "label": "handover_left_wrist",
+            "phase": "handover",
+            "t_s": 11.74000000000059,
+            "camera": "left_wrist",
+            "path": "handover-left_wrist.png"
+          },
+          {
+            "label": "handover_right_wrist",
+            "phase": "handover",
+            "t_s": 11.74000000000059,
+            "camera": "right_wrist",
+            "path": "handover-right_wrist.png"
+          },
+          {
+            "label": "release_overhead",
+            "phase": "place",
+            "t_s": 17.220000000001335,
+            "camera": "overhead",
+            "path": "release-overhead.png"
+          },
+          {
+            "label": "release_front",
+            "phase": "place",
+            "t_s": 17.220000000001335,
+            "camera": "front",
+            "path": "release-front.png"
+          },
+          {
+            "label": "release_left_wrist",
+            "phase": "place",
+            "t_s": 17.220000000001335,
+            "camera": "left_wrist",
+            "path": "release-left_wrist.png"
+          },
+          {
+            "label": "release_right_wrist",
+            "phase": "place",
+            "t_s": 17.220000000001335,
+            "camera": "right_wrist",
+            "path": "release-right_wrist.png"
+          },
+          {
+            "label": "final_overhead",
+            "phase": "settle",
+            "t_s": 20.03999999999977,
+            "camera": "overhead",
+            "path": "final-overhead.png"
+          },
+          {
+            "label": "final_front",
+            "phase": "settle",
+            "t_s": 20.03999999999977,
+            "camera": "front",
+            "path": "final-front.png"
+          },
+          {
+            "label": "final_left_wrist",
+            "phase": "settle",
+            "t_s": 20.03999999999977,
+            "camera": "left_wrist",
+            "path": "final-left_wrist.png"
+          },
+          {
+            "label": "final_right_wrist",
+            "phase": "settle",
+            "t_s": 20.03999999999977,
+            "camera": "right_wrist",
+            "path": "final-right_wrist.png"
+          }
+        ],
+        "rollout_path": "rollout.json",
+        "mjcf_path": "scene.xml",
+        "warnings": [
+          "Grasp assist: conditional MuJoCo weld replaces fingertip/object contact; this is not a friction-only grasp."
+        ]
+      },
+      "verdict": {
+        "passed": false,
+        "failed_checks": [
+          "handover_completed is false",
+          "dropped: can_min_z_m -0.762 < -0.01",
+          "off target: 1.245 m > 0.03 m",
+          "not at rest: 0.060 m/s",
+          "arm hit obstacle: 216.2 N",
+          "object inside obstacle: 10.0 mm"
+        ],
+        "thresholds": {
+          "can_target_tolerance_m": 0.03,
+          "drop_margin_m": 0.01,
+          "max_can_speed_at_end_m_s": 0.02,
+          "max_arm_table_contact_force_n": 5.0,
+          "max_arm_obstacle_contact_force_n": 5.0,
+          "max_arm_obstacle_penetration_m": 0.002,
+          "max_object_obstacle_penetration_m": 0.002
+        },
+        "obstacle_contact_measured": true
+      },
+      "supplemental": [],
+      "critique": {
+        "body": {
+          "diagnosis": [
+            "The planned handover_point_m [0.0, 0.21, 0.3] is located directly inside the upper_screen and lower_screen obstacles (which sit around y=0.16 to 0.21 m and extend up to z=0.32 m).",
+            "During the handover phase (handover_overhead, handover_front, handover_left_wrist), both arms and the held can collided heavily with the screen boxes (max_arm_obstacle_contact_force_n = 216.2 N, max_object_obstacle_penetration_m = 10.0 mm), blocking the arms from reaching each other.",
+            "Because the left receiver arm was blocked by the screen (left_grasped = false), releasing the right gripper dropped the can behind the table (release_overhead, can_min_z_m = -0.762 m). Moving handover_point_m to the clear foreground workspace at [0.05, -0.26, 0.26] avoids all laptop/screen obstacles and is comfortably within both arms' reach."
+          ],
+          "cited_keyframes": [
+            "handover_overhead",
+            "handover_front",
+            "handover_left_wrist",
+            "release_overhead"
+          ],
+          "patch": {
+            "grasp_height_offset_m": null,
+            "approach_yaw_deg": null,
+            "pregrasp_clearance_m": 0.06,
+            "lift_height_m": 0.18,
+            "handover_point_m": [
+              0.05,
+              -0.26,
+              0.26
+            ],
+            "handover_yaw_offset_deg": null,
+            "gripper_close_delay_s": null,
+            "release_delay_s": null,
+            "release_height_m": null,
+            "max_speed_m_s": null
+          }
+        },
+        "interaction": {
+          "interaction_id": "generateContent:VmreaqT5OOP3-8YP5I6isA0",
+          "previous_interaction_id": null,
+          "environment_id": null,
+          "model": "gemini-4-argon",
+          "agent": null
+        },
+        "usage": {
+          "input_tokens": 28025,
+          "output_tokens": 469,
+          "thought_tokens": null,
+          "total_tokens": 28494,
+          "wall_time_s": 12.22
+        },
+        "mode": "LIVE_ARGON"
+      }
+    },
+    {
+      "attempt": 2,
+      "mode": "LIVE_ARGON",
+      "plan": {
+        "grasp_height_offset_m": 0.0,
+        "approach_yaw_deg": 0.0,
+        "pregrasp_clearance_m": 0.06,
+        "lift_height_m": 0.18,
+        "handover_point_m": [
+          0.05,
+          -0.26,
+          0.26
+        ],
+        "handover_yaw_offset_deg": 0.0,
+        "gripper_close_delay_s": 0.25,
+        "release_delay_s": 0.25,
+        "release_height_m": 0.02,
+        "max_speed_m_s": 0.25
+      },
+      "sim": {
+        "attempt": 2,
+        "metrics": {
+          "can_final_pos_m": [
+            -0.15484995917389605,
+            -0.2814106355937377,
+            0.07739006216025875
+          ],
+          "can_final_xy_error_m": 0.005050940186418572,
+          "can_min_z_m": -0.002355096029365719,
+          "can_final_speed_m_s": 7.701810861380849e-05,
+          "left_grasped": true,
+          "right_grasped": true,
+          "handover_completed": true,
+          "max_arm_table_contact_force_n": 0.0,
+          "max_arm_obstacle_contact_force_n": 0.0,
+          "max_arm_obstacle_penetration_m": 0.0,
+          "max_object_obstacle_penetration_m": 0.0,
+          "grasp_assist_used": true,
+          "failure_phase": null,
+          "sim_time_s": 15.980000000002006,
+          "wall_time_ms": 1091.0930410027504
+        },
+        "keyframes": [
+          {
+            "label": "grasp_overhead",
+            "phase": "grasp",
+            "t_s": 4.359999999999742,
+            "camera": "overhead",
+            "path": "grasp-overhead.png"
+          },
+          {
+            "label": "grasp_front",
+            "phase": "grasp",
+            "t_s": 4.359999999999742,
+            "camera": "front",
+            "path": "grasp-front.png"
+          },
+          {
+            "label": "grasp_left_wrist",
+            "phase": "grasp",
+            "t_s": 4.359999999999742,
+            "camera": "left_wrist",
+            "path": "grasp-left_wrist.png"
+          },
+          {
+            "label": "grasp_right_wrist",
+            "phase": "grasp",
+            "t_s": 4.359999999999742,
+            "camera": "right_wrist",
+            "path": "grasp-right_wrist.png"
+          },
+          {
+            "label": "lift_overhead",
+            "phase": "lift",
+            "t_s": 5.73999999999959,
+            "camera": "overhead",
+            "path": "lift-overhead.png"
+          },
+          {
+            "label": "lift_front",
+            "phase": "lift",
+            "t_s": 5.73999999999959,
+            "camera": "front",
+            "path": "lift-front.png"
+          },
+          {
+            "label": "lift_left_wrist",
+            "phase": "lift",
+            "t_s": 5.73999999999959,
+            "camera": "left_wrist",
+            "path": "lift-left_wrist.png"
+          },
+          {
+            "label": "lift_right_wrist",
+            "phase": "lift",
+            "t_s": 5.73999999999959,
+            "camera": "right_wrist",
+            "path": "lift-right_wrist.png"
+          },
+          {
+            "label": "handover_overhead",
+            "phase": "handover",
+            "t_s": 10.680000000000236,
+            "camera": "overhead",
+            "path": "handover-overhead.png"
+          },
+          {
+            "label": "handover_front",
+            "phase": "handover",
+            "t_s": 10.680000000000236,
+            "camera": "front",
+            "path": "handover-front.png"
+          },
+          {
+            "label": "handover_left_wrist",
+            "phase": "handover",
+            "t_s": 10.680000000000236,
+            "camera": "left_wrist",
+            "path": "handover-left_wrist.png"
+          },
+          {
+            "label": "handover_right_wrist",
+            "phase": "handover",
+            "t_s": 10.680000000000236,
+            "camera": "right_wrist",
+            "path": "handover-right_wrist.png"
+          },
+          {
+            "label": "release_overhead",
+            "phase": "place",
+            "t_s": 13.160000000001064,
+            "camera": "overhead",
+            "path": "release-overhead.png"
+          },
+          {
+            "label": "release_front",
+            "phase": "place",
+            "t_s": 13.160000000001064,
+            "camera": "front",
+            "path": "release-front.png"
+          },
+          {
+            "label": "release_left_wrist",
+            "phase": "place",
+            "t_s": 13.160000000001064,
+            "camera": "left_wrist",
+            "path": "release-left_wrist.png"
+          },
+          {
+            "label": "release_right_wrist",
+            "phase": "place",
+            "t_s": 13.160000000001064,
+            "camera": "right_wrist",
+            "path": "release-right_wrist.png"
+          },
+          {
+            "label": "final_overhead",
+            "phase": "settle",
+            "t_s": 15.980000000002006,
+            "camera": "overhead",
+            "path": "final-overhead.png"
+          },
+          {
+            "label": "final_front",
+            "phase": "settle",
+            "t_s": 15.980000000002006,
+            "camera": "front",
+            "path": "final-front.png"
+          },
+          {
+            "label": "final_left_wrist",
+            "phase": "settle",
+            "t_s": 15.980000000002006,
+            "camera": "left_wrist",
+            "path": "final-left_wrist.png"
+          },
+          {
+            "label": "final_right_wrist",
+            "phase": "settle",
+            "t_s": 15.980000000002006,
+            "camera": "right_wrist",
+            "path": "final-right_wrist.png"
+          }
+        ],
+        "rollout_path": "rollout.json",
+        "mjcf_path": "scene.xml",
+        "warnings": [
+          "Grasp assist: conditional MuJoCo weld replaces fingertip/object contact; this is not a friction-only grasp."
+        ]
+      },
+      "verdict": {
+        "passed": true,
+        "failed_checks": [],
+        "thresholds": {
+          "can_target_tolerance_m": 0.03,
+          "drop_margin_m": 0.01,
+          "max_can_speed_at_end_m_s": 0.02,
+          "max_arm_table_contact_force_n": 5.0,
+          "max_arm_obstacle_contact_force_n": 5.0,
+          "max_arm_obstacle_penetration_m": 0.002,
+          "max_object_obstacle_penetration_m": 0.002
+        },
+        "obstacle_contact_measured": true
+      },
+      "supplemental": [],
+      "critique": null
+    }
+  ],
+  "sweep": null,
+  "passed": true,
+  "splat_path": "web/assets/desk.splat"
+}

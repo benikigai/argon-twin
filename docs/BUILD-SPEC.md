@@ -65,7 +65,7 @@ On the Three.js viewer: the splat of Ben's real desk, the two arms overlaid, and
 
 ### Primary proof run: `20261025-134505` (default)
 
-The default demo: the viewer's root URL opens this run. Receipts: `runs/20261025-134505/verification.json` and `runs/celsius-variant/HANDOFF.md`.
+The default demo: the viewer's root URL opens this run. Receipts: `runs/20261025-134505/verification.json` and `runs/celsius-variant/HANDOFF.md` on the demo machine; the run itself (manifest, input, receipt, keyframes, rollout, with local paths removed) ships in `web/replay/20261025-134505/`, which a fresh clone opens by default, labeled as a replay.
 
 - **Start:** `examples/desk_celsius.json`, started live from the viewer (Apply and run) with the hand-over point edited to `[0.00, 0.21, 0.30]` m, inside the fitted screen region. The scene's own `handover_point_m` is deliberately out of both arms' reach, so the critique input contains no passing hand-over point.
 - **The real can:** the task object is the Celsius can at its captured position `[0.34063638, 0.18702933, 0]` m. The right arm picks it up (`pickup_arm: "right"`, contract 1.0.3) and the left arm receives it and places it near `(-0.15, -0.28, 0)` m. In Photoreal, the can's own 943 captured Gaussians (segmented from the desk scan, with scale, rotation and opacity intact) move with the simulated can through pickup, hand-over and place; the background splat has the can removed (`desk-without-celsius.splat`, 976 Gaussians removed from the 17,157-Gaussian scan; `runs/celsius-variant/assets/extraction.json`).
@@ -262,7 +262,7 @@ Rules:
 
 - Model usage (tokens, thinking tokens, wall time) and interaction IDs are copied from the API response. Unknown values stay `None`; nothing is estimated.
 - The manifest is rewritten after every attempt, so a crashed run still leaves a record up to its last attempt.
-- `runs/` is gitignored because it holds large renders and frames from a video that shows bystanders. Any run quoted in the README or the demo is exported with `export_replay.py` into `web/replay/<run_id>/`, which is committed, so every public number points to a committed file. `export_replay.py` doesn't copy `sweep/receipt.json` yet; until it does, the sweep's IDs come from the manifest's `sweep` field.
+- `runs/` is gitignored because it holds large renders and frames from a video that shows bystanders. Any run quoted in the README or the demo is exported with `export_replay.py` into `web/replay/<run_id>/`, which is committed, so every public number points to a committed file. `export_replay.py` copies `manifest.json`, `input.json`, the run's verification receipt, keyframes and rollout, rewrites repo paths to repo-relative ones and drops other local paths, and records each run's `scene_background` in `web/replay/index.json`. When a run isn't in the local `runs/`, the server reads it from `web/replay/` and labels it REPLAY. The sweep's `sweep/receipt.json` isn't copied yet; until it is, the sweep's IDs come from the manifest's `sweep` field.
 
 ### Contract notes
 
@@ -303,7 +303,7 @@ A small controller-repair pilot, served on the local machine and compared live i
 
 ### Dependencies
 
-Python 3.12. Pin exact versions in `requirements.txt` (not committed yet), matching the environment the recorded runs used:
+Python 3.12. Exact versions are pinned in `requirements.txt`, matching the environment the recorded runs used:
 
 ```
 mujoco==3.17.0
@@ -314,6 +314,8 @@ pydantic==2.14.1
 fastapi==0.162.0
 uvicorn==0.54.0
 numpy==2.5.4
+pillow==13.0.0
+httpx==0.28.1
 pytest==9.1.1
 ```
 

@@ -43,6 +43,17 @@ ArgonTwin starts from a phone video of the table. MuJoCo runs two ALOHA arms thr
 
 Google's own showcase for Argon's 3D work is [Desk Racer](https://aistudio.google.com/learn/building-3d-games-and-worlds-with-gemini-4-argon): a go-kart game built on top of a real desk, refined by a critic model that rates screenshots. Same kind of input here. Different finish line. ArgonTwin is done when fixed thresholds on MuJoCo's measurements say so, not when a model likes the picture.
 
+## Where this goes
+
+ArgonTwin is a prototype of physics-refereed robot planning: capture a real space, build a physics twin, let Gemini Argon propose, watch, critique and fix, and let deterministic physics judge and score. Today that is two ALOHA arms, one hand-over task and one real desk. The same loop is where model-driven robots are heading:
+
+- **A safety gate for model-driven robots.** As robots are driven by language and vision models, a model's plan goes through a physics referee before any motor moves. The model proposes; physics decides. This is the part the prototype already shows.
+- **Rehearsal in your own space.** Before a home robot or humanoid tries a task in a specific kitchen, office or workcell, it rehearses on a twin of that space, and physics rejects moves that hit or drop things.
+- **Verified training data.** Each passing rollout is a physics-checked trajectory on a real scanned scene, the kind of data robot policies need. The Gemma pilot is a first step: trained on MuJoCo-verified repairs, it went from 4/12 to 11/12 in recorded local validation.
+- **Scoring plans from policies and world models.** Learned world models predict plausible futures; a deterministic simulator measures them in newtons and millimeters. Argon sits between the two as the critic that reads frames and numbers and fixes the plan.
+
+What doesn't carry over yet: the hand-over controller is scripted for ALOHA, grasps use the weld assist, and obstacles are fitted boxes. Other robot models can be swapped into the scene; a new robot or task still needs its own controller.
+
 ## The loop
 
 ![The loop: a 10 second phone video goes to Gemini 4 Argon, which builds the scene. Two ALOHA arms run the handover in MuJoCo. Argon watches keyframes and metrics, explains the failure, and patches the plan. Only MuJoCo's judge decides pass or fail. Passing runs are saved for the live viewer and, later, a recorded replay on Vercel.](docs/loop.svg)
@@ -54,11 +65,11 @@ Google's own showcase for Argon's 3D work is [Desk Racer](https://aistudio.googl
 
 ## Proof
 
-Recorded runs replay what already happened; the Run the loop button executes a new one live. Receipts are in `runs/<id>/` on the demo machine (`runs/` isn't published).
+Recorded runs replay what already happened; the Run the loop button executes a new one live. Receipts are in `runs/<id>/` on the demo machine (`runs/` isn't published); the default run ships with the repo in `web/replay/`.
 
 ### Celsius can collision repair (the default demo)
 
-Run `20261025-134505`, started from the viewer. Receipt: `runs/20261025-134505/verification.json`. It's what the viewer opens on.
+Run `20261025-134505`, started from the viewer. Receipt: `web/replay/20261025-134505/verification.json`, shipped with its manifest, keyframes and rollout, so a fresh clone replays it. It's what the viewer opens on.
 
 The task object is the actual Celsius can on the desk. Its Gaussians were segmented out of the trained splat and removed from the desk background, and in Photoreal they ride on the simulated cylinder through pickup, hand-over and placement. The right arm picks it up from where it really stood, (0.341, 0.187, 0), and the left arm places it.
 
@@ -193,9 +204,10 @@ The Gemma model is a narrow pilot: two repair types, mostly restoring a known go
 
 ## Run it
 
-Python 3.12, `mujoco`, `mink`, `robot_descriptions`, `google-genai`, `pydantic`, `fastapi`, `uvicorn`.
+Python 3.12. A fresh clone opens on the recorded Celsius run in `web/replay/`; Run the loop needs a `GEMINI_API_KEY`.
 
 ```bash
+pip install -r requirements.txt
 uvicorn server:app --port 8000                              # live viewer at http://127.0.0.1:8000
 python loop.py --scene examples/desk_celsius_demo.json      # the Celsius collision demo, live
 python compare.py --case scene-13-variant-2                 # base vs fine-tuned Gemma (needs the local Gemma server)

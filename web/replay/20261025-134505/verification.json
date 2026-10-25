@@ -1,0 +1,197 @@
+{
+  "run_id": "20261025-134505",
+  "source": "LIVE browser Apply and run",
+  "variant": "celsius",
+  "pickup_arm": "right",
+  "first_verdict": {
+    "passed": false,
+    "failed_checks": [
+      "handover_completed is false",
+      "dropped: can_min_z_m -0.762 < -0.01",
+      "off target: 1.245 m > 0.03 m",
+      "not at rest: 0.060 m/s",
+      "arm hit obstacle: 216.2 N",
+      "object inside obstacle: 10.0 mm"
+    ],
+    "thresholds": {
+      "can_target_tolerance_m": 0.03,
+      "drop_margin_m": 0.01,
+      "max_can_speed_at_end_m_s": 0.02,
+      "max_arm_table_contact_force_n": 5.0,
+      "max_arm_obstacle_contact_force_n": 5.0,
+      "max_arm_obstacle_penetration_m": 0.002,
+      "max_object_obstacle_penetration_m": 0.002
+    },
+    "obstacle_contact_measured": true
+  },
+  "first_metrics": {
+    "can_final_pos_m": [
+      0.08199675642812158,
+      0.9428930265098456,
+      -0.7112072347788677
+    ],
+    "can_final_xy_error_m": 1.2447047237315279,
+    "can_min_z_m": -0.7621113952532803,
+    "can_final_speed_m_s": 0.06025411488733458,
+    "left_grasped": false,
+    "right_grasped": true,
+    "handover_completed": false,
+    "max_arm_table_contact_force_n": 0.0,
+    "max_arm_obstacle_contact_force_n": 216.19397914803062,
+    "max_arm_obstacle_penetration_m": 0.0012091950181655857,
+    "max_object_obstacle_penetration_m": 0.009986115136193702,
+    "grasp_assist_used": true,
+    "failure_phase": "handover",
+    "sim_time_s": 20.03999999999977,
+    "wall_time_ms": 1933.9501670037862
+  },
+  "critique": {
+    "body": {
+      "diagnosis": [
+        "The planned handover_point_m [0.0, 0.21, 0.3] is located directly inside the upper_screen and lower_screen obstacles (which sit around y=0.16 to 0.21 m and extend up to z=0.32 m).",
+        "During the handover phase (handover_overhead, handover_front, handover_left_wrist), both arms and the held can collided heavily with the screen boxes (max_arm_obstacle_contact_force_n = 216.2 N, max_object_obstacle_penetration_m = 10.0 mm), blocking the arms from reaching each other.",
+        "Because the left receiver arm was blocked by the screen (left_grasped = false), releasing the right gripper dropped the can behind the table (release_overhead, can_min_z_m = -0.762 m). Moving handover_point_m to the clear foreground workspace at [0.05, -0.26, 0.26] avoids all laptop/screen obstacles and is comfortably within both arms' reach."
+      ],
+      "cited_keyframes": [
+        "handover_overhead",
+        "handover_front",
+        "handover_left_wrist",
+        "release_overhead"
+      ],
+      "patch": {
+        "grasp_height_offset_m": null,
+        "approach_yaw_deg": null,
+        "pregrasp_clearance_m": 0.06,
+        "lift_height_m": 0.18,
+        "handover_point_m": [
+          0.05,
+          -0.26,
+          0.26
+        ],
+        "handover_yaw_offset_deg": null,
+        "gripper_close_delay_s": null,
+        "release_delay_s": null,
+        "release_height_m": null,
+        "max_speed_m_s": null
+      }
+    },
+    "interaction": {
+      "interaction_id": "generateContent:VmreaqT5OOP3-8YP5I6isA0",
+      "previous_interaction_id": null,
+      "environment_id": null,
+      "model": "gemini-4-argon",
+      "agent": null
+    },
+    "usage": {
+      "input_tokens": 28025,
+      "output_tokens": 469,
+      "thought_tokens": null,
+      "total_tokens": 28494,
+      "wall_time_s": 12.22
+    },
+    "mode": "LIVE_ARGON"
+  },
+  "second_verdict": {
+    "passed": true,
+    "failed_checks": [],
+    "thresholds": {
+      "can_target_tolerance_m": 0.03,
+      "drop_margin_m": 0.01,
+      "max_can_speed_at_end_m_s": 0.02,
+      "max_arm_table_contact_force_n": 5.0,
+      "max_arm_obstacle_contact_force_n": 5.0,
+      "max_arm_obstacle_penetration_m": 0.002,
+      "max_object_obstacle_penetration_m": 0.002
+    },
+    "obstacle_contact_measured": true
+  },
+  "second_metrics": {
+    "can_final_pos_m": [
+      -0.15484995917389605,
+      -0.2814106355937377,
+      0.07739006216025875
+    ],
+    "can_final_xy_error_m": 0.005050940186418572,
+    "can_min_z_m": -0.002355096029365719,
+    "can_final_speed_m_s": 7.701810861380849e-05,
+    "left_grasped": true,
+    "right_grasped": true,
+    "handover_completed": true,
+    "max_arm_table_contact_force_n": 0.0,
+    "max_arm_obstacle_contact_force_n": 0.0,
+    "max_arm_obstacle_penetration_m": 0.0,
+    "max_object_obstacle_penetration_m": 0.0,
+    "grasp_assist_used": true,
+    "failure_phase": null,
+    "sim_time_s": 15.980000000002006,
+    "wall_time_ms": 1091.0930410027504
+  },
+  "independent_repeat": {
+    "verdict": {
+      "passed": true,
+      "failed_checks": [],
+      "thresholds": {
+        "can_target_tolerance_m": 0.03,
+        "drop_margin_m": 0.01,
+        "max_can_speed_at_end_m_s": 0.02,
+        "max_arm_table_contact_force_n": 5.0,
+        "max_arm_obstacle_contact_force_n": 5.0,
+        "max_arm_obstacle_penetration_m": 0.002,
+        "max_object_obstacle_penetration_m": 0.002
+      },
+      "obstacle_contact_measured": true
+    },
+    "metrics": {
+      "can_final_pos_m": [
+        -0.15484995917389605,
+        -0.2814106355937377,
+        0.07739006216025875
+      ],
+      "can_final_xy_error_m": 0.005050940186418572,
+      "can_min_z_m": -0.002355096029365719,
+      "can_final_speed_m_s": 7.701810861380849e-05,
+      "left_grasped": true,
+      "right_grasped": true,
+      "handover_completed": true,
+      "max_arm_table_contact_force_n": 0.0,
+      "max_arm_obstacle_contact_force_n": 0.0,
+      "max_arm_obstacle_penetration_m": 0.0,
+      "max_object_obstacle_penetration_m": 0.0,
+      "grasp_assist_used": true,
+      "failure_phase": null,
+      "sim_time_s": 15.980000000002006,
+      "wall_time_ms": 676.2089169933461
+    }
+  },
+  "sha256": {
+    "sim.py": "d4abeaef0e01315aecd275cd557786b7f7e89027393d43f664395403b892559b",
+    "argon.py": "1142f55575dcbb8796464175fc17806dd3686a1cd399f1c5d13ee82358b259b5",
+    "schemas.py": "e7d639f3fd35c49a54e443cdb12833ac7f2756a1aa5a4a3f571aaf06d6b1a223",
+    "config.py": "d834d1765228b64edd179dc8a09f2915d7265b4e3bdd521090908688e348041e",
+    "examples/desk_celsius.json": "89d73cb921b462b3622a2f5e94798250f689de051254b3164866259fcb6f06d0",
+    "capture/extract_celsius.py": "e715f9c46e9e09f7f47f86731b8cbfbfb3846b73b90cca6b7008b5d60e3c7bbd",
+    "web/assets/celsius-can.splat": "fd5c997169e702db55f25e814493edfa920c423ce735ceced2588ea3dd8fd341",
+    "web/assets/desk-without-celsius.splat": "5a6614c3de5a6343bfabe8d8abbc2092f6d486e87f4ecdddd5b9dd8058d48e11",
+    "web/app.js": "ebfa08cd1c70ef368bbc320c950b33e9f3f19465a21cfc9539e909da92897ef7"
+  },
+  "limits": [
+    "Conditional weld grasp assist, not friction-only grasp",
+    "Can dimensions, mass, and obstacle geometry are approximate",
+    "Captured appearance is soft and may contain reconstruction floaters"
+  ],
+  "default_retained": "20261025-133036",
+  "visual_verification": {
+    "modes": [
+      "Gold",
+      "Solid",
+      "Photoreal"
+    ],
+    "moving_appearance": "943 captured Gaussians rendered with scale, quaternion and opacity preserved; body-attached base-center transform",
+    "background": "Original can removed from desk-without-celsius.splat",
+    "screenshots": [
+      "<local path removed>",
+      "<local path removed>",
+      "<local path removed>"
+    ]
+  }
+}

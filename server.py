@@ -20,7 +20,7 @@ from typing import Literal, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -69,11 +69,16 @@ def _repo_path(relative: str) -> Path:
     return path
 
 
+REPLAY_DIR = config.WEB_DIR / "replay"  # recorded runs shipped with the repo (export_replay.py)
+
+
 def _run_dir(run_id: str) -> Path:
-    path = (config.RUNS_DIR / run_id).resolve()
-    if path.parent != config.RUNS_DIR.resolve() or not path.is_dir():
-        raise HTTPException(404, f"no run {run_id}")
-    return path
+    """A run's folder: runs/<id> on this machine, else a shipped recording in web/replay/<id>."""
+    for root in (config.RUNS_DIR, REPLAY_DIR):
+        path = (root / run_id).resolve()
+        if path.parent == root.resolve() and path.is_dir():
+            return path
+    raise HTTPException(404, f"no run {run_id}")
 
 
 def _read_manifest(run_id: str) -> Optional[RunManifest]:
@@ -120,7 +125,9 @@ def health() -> dict:
 def list_runs() -> list[RunSummary]:
     if not config.RUNS_DIR.exists():
         return []
-    summaries = [_summary(p.name) for p in config.RUNS_DIR.iterdir() if p.is_dir()]
+    local = {p.name for p in config.RUNS_DIR.iterdir() if p.is_dir()}
+    shipped = {p.name for p in REPLAY_DIR.iterdir() if p.is_dir()} if REPLAY_DIR.exists() else set()
+    summaries = [_summary(name) for name in local | shipped]
     # Newest first by the time the run recorded, not by directory name; live runs on top.
     earliest = datetime.min.replace(tzinfo=timezone.utc)
     summaries.sort(key=lambda r: (r.state == "running", r.created_at or earliest), reverse=True)
@@ -207,6 +214,16 @@ except ImportError:
     compare_api = None
 if compare_api is not None:
     app.include_router(compare_api.router)
+
+@app.get("/runs/{run_id}/{file_path:path}")
+def run_file(run_id: str, file_path: str) -> FileResponse:
+    """Keyframes and rollouts from runs/<id>, or from web/replay/<id> on a fresh checkout."""
+    base = _run_dir(run_id)
+    path = (base / file_path).resolve()
+    if base not in path.parents or not path.is_file():
+        raise HTTPException(404, f"no file {file_path} in run {run_id}")
+    return FileResponse(path)
+
 
 config.RUNS_DIR.mkdir(exist_ok=True)
 app.mount("/runs", StaticFiles(directory=config.RUNS_DIR), name="runs")
