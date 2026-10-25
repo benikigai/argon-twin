@@ -72,9 +72,15 @@ const CAPTURE = new URLSearchParams(location.search).get("capture") === "1";
 const START_VIEW = new URLSearchParams(location.search).get("view") ?? "photo";
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: CAPTURE });
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor("#000000");
+renderer.setClearColor("#07080a");
 
 const scene = new THREE.Scene();
+// A faint drafting grid on the floor under the desk (the table top is the sim's z = 0, about
+// 0.74 m up), fading into the background with distance so it frames the scene without noise.
+scene.fog = new THREE.Fog("#07080a", 3.2, 7);
+const floorGrid = new THREE.GridHelper(12, 120, "#1b1f25", "#1b1f25");
+floorGrid.position.y = -0.74;
+scene.add(floorGrid);
 const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 50);
 camera.position.set(0.0, 1.05, 1.6);
 const controls = new OrbitControls(camera, canvas);
@@ -128,6 +134,9 @@ function heroCamera() {
   controls.update();
 }
 window.addEventListener("resize", resize);
+// The stage also changes size without a window resize (the step rail fills in, fonts load,
+// the top bar wraps), so watch it directly or the 3D view renders stretched.
+new ResizeObserver(() => resize()).observe(canvas.parentElement);
 resize();
 
 // --- Data ------------------------------------------------------------------------
@@ -869,19 +878,19 @@ async function useBackground(url) {
 const REAL_POINT_COLOR = new THREE.Color("#8fd0e3");  // reconstructed data: cool blue, never gold
 
 const MODE_NOTES = {
-  gold: "Gold: the simulation's own geometry drawn as dots and dotted outlines. Stylized, not captured from the video.",
-  solid: "Solid: the simulation's geometry as plain surfaces.",
-  photo: "Photoreal: the desk as a Gaussian splat trained from the 10-second phone video (soft, with some floaters), with the simulated arms on top.",
+  gold: "Gold: the twin's geometry as points. Stylized, not captured.",
+  solid: "Solid: the surfaces MuJoCo collides with.",
+  photo: "Photoreal: a Gaussian splat of the real desk from a 10 s phone video. Simulated arms on top.",
 };
 
 function setCaption(extra) {
   if (extra !== undefined) captionText = extra;
   const real = realPoints && state.splatStyle === "gold"
-    ? " Blue dots are the desk reconstructed from the video, aligned to the sim table by fitting its plane and rim."
+    ? " Blue dots: the desk reconstructed from the video."
     : "";
-  const colliders = state.showColliders ? " Blue outlines are the table and obstacle surfaces MuJoCo simulated in this run." : "";
+  const colliders = state.showColliders ? " Cyan outlines: collision surfaces in this run." : "";
   const segmented = state.splatStyle === "photo" && (state.run?.manifest?.scene?.objects ?? []).some((o) => o.visual_splat_path)
-    ? " The can is its own splat, cut out of the scan, riding on the simulated can." : "";
+    ? " The can is its own splat, riding the simulated can." : "";
   const base = MODE_NOTES[state.splatStyle] + real + segmented + colliders + (photoNote ? " " + photoNote : "");
   const text = [base, captionText].filter(Boolean).join(" ");
   $("caption").textContent = text;

@@ -7,8 +7,8 @@
   <meta name="description" content="A phone video of a real desk becomes a physics twin. Two robot arms try a handover, Gemini 4 Argon fixes the plan when they fail, and MuJoCo decides when it passes.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="landing.css?v=2">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Martian+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="landing.css?v=3">
   <script>
     // Old viewer links (/?run=..., ?variant=, ?capture=, ?demo=) still open the viewer.
     if (/[?&](run|variant|capture|demo|view)=/.test(location.search)) location.replace("demo.html" + location.search);
@@ -16,7 +16,7 @@
 </head>
 <body>
   <header class="top">
-    <a class="mark" href="./">ArgonTwin</a>
+    <a class="mark" href="./">Argon<span>Twin</span></a>
     <nav>
       <a href="https://github.com/benikigai/argon-twin">GitHub</a>
       <a class="btn" href="demo.html">Open the 3D twin</a>
@@ -25,14 +25,15 @@
 
   <main>
     <section class="hero">
-      <p class="eyebrow">Gemini 4 Argon SF Hackathon. Oct 25, 2026.</p>
+      <p class="eyebrow">Gemini 4 Argon SF Hackathon · Oct 25, 2026</p>
       <h1>Your desk.<br>Rehearsed by robots before they touch it.</h1>
-      <p class="lead">Film the table with your phone. Two robot arms try a task on a physics twin of it. When they fail, Gemini 4 Argon reads the frames and the numbers, says why, and fixes the plan. MuJoCo decides when it passes.</p>
+      <p class="lead">Film a table with your phone. Two robot arms try a task on a physics twin of it. When they fail, Gemini 4 Argon reads the frames and the numbers, says why, and fixes the plan. MuJoCo decides.</p>
 
       <figure class="clip">
+        <figcaption class="fig">FIG. 01 · THE LOOP, RECORDED IN THE 3D VIEWER</figcaption>
         <video id="clip" src="assets/hero-repair.mp4" poster="assets/hero-repair-poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="Attempt 1 fails: the arm hits the screens at 216 N and the can drops. Argon says the handover point is inside the screens and moves it in front. Attempt 2 passes, 5 mm from target, shown in Photoreal, Gold and Solid views."></video>
       </figure>
-      <p class="clip-note">Recorded from the 3D viewer, run 20261025-134505, sped up 1.5 to 2.5x. Photoreal is the real desk. Gold is the scan. Solid is what physics collides with. <a href="demo.html">Orbit it yourself</a>.</p>
+      <p class="clip-note">Sped up 1.5 to 2.5x. Photoreal is the real desk, Gold is the scan, Solid is what physics collides with. <a href="demo.html">Orbit it yourself</a></p>
 
       <ul class="receipts" aria-label="Receipts">
         <li><b>10.4 s</b>of phone video</li>
@@ -44,6 +45,7 @@
     </section>
 
     <section class="twin">
+      <p class="fig">FIG. 02 · SIMULATION VS TWIN</p>
       <h2>A simulation is a world you made up.<br>A twin is a world you measured.</h2>
       <table>
         <thead><tr><th></th><th>Typical simulation</th><th>ArgonTwin</th></tr></thead>
@@ -58,6 +60,7 @@
     </section>
 
     <section class="proof">
+      <p class="fig">FIG. 03 · RUN 20261025-134505</p>
       <h2>One real run. Fail, fix, pass.</h2>
       <div class="trio">
         <article class="card fail">
@@ -80,6 +83,7 @@
     </section>
 
     <section class="next">
+      <p class="fig">FIG. 04 · NEXT</p>
       <h2>Where this goes</h2>
       <ul>
         <li><b>A safety gate for model-driven robots.</b> A model's plan goes through a physics referee before any motor moves. This part already works.</li>
@@ -97,7 +101,13 @@
   </main>
 
   <footer>
-    <p>Gemini 4 Argon. Antigravity managed agent. Gemma 4. MuJoCo 3.17 and two ALOHA arms. COLMAP and gsplat. Three.js. Built in one day at SHACK15.</p>
+    <dl class="titleblock">
+      <div><dt>Project</dt><dd>ArgonTwin</dd></div>
+      <div><dt>Built</dt><dd>One day at SHACK15, Oct 25, 2026</dd></div>
+      <div><dt>Models</dt><dd>Gemini 4 Argon, Antigravity managed agent, Gemma 4</dd></div>
+      <div><dt>Physics</dt><dd>MuJoCo 3.17, two ALOHA arms</dd></div>
+      <div><dt>Capture</dt><dd>COLMAP, gsplat, Three.js</dd></div>
+    </dl>
     <p class="close">Day one. Lets Build!</p>
   </footer>
 

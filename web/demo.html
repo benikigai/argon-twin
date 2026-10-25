@@ -6,8 +6,8 @@
   <title>ArgonTwin: the 3D twin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=19">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Martian+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="style.css?v=23">
   <script type="importmap">
     {
       "imports": {
@@ -19,20 +19,21 @@
   </script>
 </head>
 <body>
-  <main class="stage" aria-label="Simulation stage">
-    <canvas id="stage"></canvas>
-
-    <header class="masthead">
-      <h1><a href="./" title="Back to the ArgonTwin overview">ArgonTwin</a></h1>
-      <p>Two robot arms rehearse a hand-over on Ben's real desk. Argon watches, explains, and fixes the plan.</p>
-    </header>
-
+  <header class="topbar">
+    <div class="masthead">
+      <h1><a href="./" title="Back to the ArgonTwin overview">Argon<span>Twin</span></a></h1>
+      <p>Two arms rehearse a handover on a real desk. Gemini 4 Argon fixes the plan. MuJoCo decides.</p>
+    </div>
     <div class="status">
       <span id="source" class="source">Connecting</span>
       <button id="replay" type="button" disabled>Replay</button>
       <button id="edit-plan" type="button" aria-expanded="false" aria-controls="planner" hidden>Edit plan</button>
       <button id="run" type="button" class="primary" hidden>Run the loop</button>
     </div>
+  </header>
+
+  <main class="stage" aria-label="Simulation stage">
+    <canvas id="stage"></canvas>
 
     <ol id="phases" class="phases" aria-label="Live run progress" aria-live="polite" hidden></ol>
 
@@ -60,54 +61,57 @@
     <section id="subtitles" class="subtitles" aria-live="polite" hidden></section>
     <aside id="evidence" class="evidence" hidden></aside>
 
-    <aside id="how-built" class="how-built" aria-label="How the 3D twin was built" hidden>
-      <div class="how-built-head">
-        <h2>From 10s Phone Video to Collision-Checked 3D Twin</h2>
-        <button id="how-built-close" type="button" class="quiet" aria-label="Close">✕</button>
-      </div>
-      <img src="assets/splat-pipeline.svg" alt="Pipeline diagram: Step 1 10.4 s iPhone capture -> Step 2 Local pycolmap sparse 3D points -> Step 3 Colab T4 CUDA gsplat -> Step 4 RANSAC plane fit into MuJoCo 3.17 collision boxes" class="how-built-strip">
-      <div class="how-built-media">
-        <figure class="how-built-video-wrap">
-          <video id="how-built-video" controls playsinline loop muted preload="metadata" poster="assets/scan/0001.jpg" src="assets/desk-scan-blurred.mp4"></video>
-          <figcaption>10.4 s walkthrough clip (<code>IMG_1272.MOV</code>, 52 frames; hit Play or click any angle →)</figcaption>
-        </figure>
-        <div class="how-built-grid" aria-label="8 camera angles around the SHACK15 desk">
-          <button type="button" class="scan-thumb" data-time="0.0"><img src="assets/scan/0001.jpg" alt="Frame 0001 front-left angle"><span>#01 · 0.0s</span></button>
-          <button type="button" class="scan-thumb" data-time="1.4"><img src="assets/scan/0008.jpg" alt="Frame 0008 front angle"><span>#08 · 1.4s</span></button>
-          <button type="button" class="scan-thumb" data-time="2.8"><img src="assets/scan/0015.jpg" alt="Frame 0015 front-right angle"><span>#15 · 2.8s</span></button>
-          <button type="button" class="scan-thumb" data-time="4.2"><img src="assets/scan/0022.jpg" alt="Frame 0022 right-top angle"><span>#22 · 4.2s</span></button>
-          <button type="button" class="scan-thumb" data-time="5.6"><img src="assets/scan/0029.jpg" alt="Frame 0029 right profile angle"><span>#29 · 5.6s</span></button>
-          <button type="button" class="scan-thumb" data-time="7.0"><img src="assets/scan/0036.jpg" alt="Frame 0036 high oblique angle"><span>#36 · 7.0s</span></button>
-          <button type="button" class="scan-thumb" data-time="8.4"><img src="assets/scan/0043.jpg" alt="Frame 0043 center-right angle"><span>#43 · 8.4s</span></button>
-          <button type="button" class="scan-thumb" data-time="9.8"><img src="assets/scan/0050.jpg" alt="Frame 0050 center-front angle"><span>#50 · 9.8s</span></button>
-        </div>
-      </div>
-      <ol class="how-built-steps">
-        <li><b>1. Multi-view capture &amp; privacy blur:</b> 10.4 s iPhone 0.5× walkthrough (<code>52</code> frames @ 5 fps); attendee faces &amp; background blurred via macOS Apple Vision.</li>
-        <li><b>2. Local <code>pycolmap</code> sparse 3D:</b> SIFT feature matching + bundle adjustment on Mac CPU solves <code>52/52</code> camera poses and <b><code>20,762</code> sparse 3D points</b> (<code>3,456</code> filtered starting points with &lt;3 px error).</li>
-        <li><b>3. Colab T4 GPU <code>gsplat</code> (<code>68k</code> → <code>17k</code> Gaussians):</b> Open-source <code>gsplat</code> 1.5.3 custom CUDA kernels on an NVIDIA Tesla T4 GPU optimize 3D Gaussian ellipsoids (1,500 steps in 10.0 s) into <code>68,192</code> Gaussians, cropped to <b><code>17,157</code> desk Gaussians</b> (<code>desk.splat</code>) + <b><code>943</code> Celsius-can Gaussians</b>.</li>
-        <li><b>4. RANSAC plane fit → MuJoCo collision boxes:</b> 2,000-iteration RANSAC fits the tabletop frame and 5 rigid screen/laptop boxes (<code>1.6–3.7 mm</code> RMS, <code>+8 mm</code> margin) so MuJoCo measures real arm-screen contact force (<code>N</code>) and penetration (<code>mm</code>).</li>
-      </ol>
-    </aside>
-
     <div class="stage-foot">
       <span id="caption"></span>
-      <button id="how-built-btn" type="button" class="quiet-toggle" aria-pressed="false" aria-controls="how-built">How 3D twin was built</button>
-      <button id="closeup" type="button" class="quiet-toggle" aria-pressed="false">Gripper view</button>
-      <button id="colliders" type="button" class="quiet-toggle" aria-pressed="false">Collision surfaces</button>
-      <div id="scan-modes" class="scan-modes" role="group" aria-label="View">
-        <button type="button" data-mode="gold" aria-pressed="true">Gold</button>
-        <button type="button" data-mode="solid" aria-pressed="false">Solid</button>
-        <button type="button" data-mode="photo" aria-pressed="false" disabled>Photoreal (not ready)</button>
+      <div class="tools">
+        <div id="scan-modes" class="scan-modes" role="group" aria-label="View">
+          <button type="button" data-mode="gold" aria-pressed="true">Gold</button>
+          <button type="button" data-mode="solid" aria-pressed="false">Solid</button>
+          <button type="button" data-mode="photo" aria-pressed="false" disabled>Photoreal (not ready)</button>
+        </div>
+        <button id="colliders" type="button" class="quiet-toggle" aria-pressed="false">Collisions</button>
+        <button id="closeup" type="button" class="quiet-toggle" aria-pressed="false">Gripper</button>
+        <button id="how-built-btn" type="button" class="quiet-toggle" aria-pressed="false" aria-controls="how-built">How it was built</button>
       </div>
     </div>
   </main>
-
   <nav class="rail" aria-label="The loop">
     <ol id="steps"></ol>
   </nav>
 
-  <script type="module" src="app.js?v=43"></script>
+  <div id="how-built" class="how-built" role="dialog" aria-modal="true" aria-labelledby="how-built-title" hidden>
+    <div class="sheet">
+      <header class="sheet-head">
+        <span class="fig">FIG. 02 · CAPTURE TO TWIN</span>
+        <h2 id="how-built-title">From a 10 second phone video to a physics twin</h2>
+        <button id="how-built-close" type="button" aria-label="Close">Close</button>
+      </header>
+      <ol class="pipeline">
+        <li><span class="k">01 · CAPTURE</span><b>10.4 s iPhone video</b><span>52 frames. Faces and other tables blurred on the Mac.</span></li>
+        <li><span class="k">02 · CAMERAS</span><b>pycolmap on a Mac CPU</b><span>52 of 52 camera poses solved. 3,456 clean 3D points.</span></li>
+        <li><span class="k">03 · SPLAT</span><b>gsplat on a Colab T4</b><span>68,192 Gaussians in 10.0 s. 17,157 kept for the desk, 943 for the can.</span></li>
+        <li><span class="k">04 · COLLISION</span><b>RANSAC plane fit</b><span>Screens and laptop as 5 MuJoCo boxes. 1.6 to 3.7 mm RMS, 8 mm margin.</span></li>
+      </ol>
+      <div class="how-built-media">
+        <figure class="how-built-video-wrap">
+          <video id="how-built-video" controls playsinline loop muted preload="metadata" poster="assets/scan/0001.jpg" src="assets/desk-scan-blurred.mp4"></video>
+          <figcaption>The whole input. Pick an angle to jump to it.</figcaption>
+        </figure>
+        <div class="how-built-grid" aria-label="8 camera angles around the desk">
+          <button type="button" class="scan-thumb" data-time="0.0"><img src="assets/scan/0001.jpg" alt="Frame 1, front left"><span>01 · 0.0 s</span></button>
+          <button type="button" class="scan-thumb" data-time="1.4"><img src="assets/scan/0008.jpg" alt="Frame 8, front"><span>08 · 1.4 s</span></button>
+          <button type="button" class="scan-thumb" data-time="2.8"><img src="assets/scan/0015.jpg" alt="Frame 15, front right"><span>15 · 2.8 s</span></button>
+          <button type="button" class="scan-thumb" data-time="4.2"><img src="assets/scan/0022.jpg" alt="Frame 22, right, from above"><span>22 · 4.2 s</span></button>
+          <button type="button" class="scan-thumb" data-time="5.6"><img src="assets/scan/0029.jpg" alt="Frame 29, right side"><span>29 · 5.6 s</span></button>
+          <button type="button" class="scan-thumb" data-time="7.0"><img src="assets/scan/0036.jpg" alt="Frame 36, high angle"><span>36 · 7.0 s</span></button>
+          <button type="button" class="scan-thumb" data-time="8.4"><img src="assets/scan/0043.jpg" alt="Frame 43, center right"><span>43 · 8.4 s</span></button>
+          <button type="button" class="scan-thumb" data-time="9.8"><img src="assets/scan/0050.jpg" alt="Frame 50, center front"><span>50 · 9.8 s</span></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="app.js?v=44"></script>
   <script>
     (() => {
       const btn = document.getElementById("how-built-btn");
@@ -133,6 +137,7 @@
         window.addEventListener("keydown", (e) => {
           if (e.key === "Escape" && !panel.hidden) setOpen(false);
         });
+        panel.addEventListener("click", (e) => { if (e.target === panel) setOpen(false); });
       }
     })();
   </script>
