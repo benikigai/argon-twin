@@ -8,6 +8,8 @@ Built at the [Gemini 4 Argon SF Hackathon](https://cerebralvalley.ai/events/~/e/
 
 **[Try the verified Celsius replay](https://argon-twin.vercel.app)**: watch the screen collision, read Argon's repair, and replay the passing hand-over. The public demo is a recorded run; new model calls and physics runs need the local server (see [Run it](#run-it)).
 
+**[Watch the 60-second tour](https://argon-twin.vercel.app/watch)** · 1920×1080, no audio. Phone capture, Gaussian splat, collision, Argon repair, and the passing hand-over.
+
 ![Screenshot of the local viewer in Photoreal mode: the Gaussian splat of Ben's desk with two simulated ALOHA arms, the Celsius can splat riding on the simulated can, a MuJoCo Pass verdict (can placed 0.5 cm from target, 0.0 N obstacle contact), two wrist camera views, and the attempt strip: attempt 1 failed, Argon explains and fixes, attempt 2 passed.](docs/proof-celsius-photoreal.png)
 
 *Screenshot of the local viewer right after live run 20261025-134505, attempt 2, Photoreal view. The chips under the title are that run's own live phases. Details under [Proof](#proof).*
