@@ -10,7 +10,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-CONFIG_VERSION = "1.0.0"
+CONFIG_VERSION = "1.0.2"
 
 # --- Paths -------------------------------------------------------------------
 REPO_ROOT = Path(__file__).resolve().parent
@@ -49,6 +49,9 @@ CAN_TARGET_TOLERANCE_M = 0.03     # can's final center within 3 cm of target (x,
 DROP_MARGIN_M = 0.01              # can lower than table top - margin at any time = dropped
 MAX_CAN_SPEED_AT_END_M_S = 0.02   # can must be at rest at the end of the attempt
 MAX_ARM_TABLE_CONTACT_FORCE_N = 5.0
+MAX_ARM_OBSTACLE_CONTACT_FORCE_N = 5.0   # arm against the laptop, screens, or other fitted obstacles
+MAX_ARM_OBSTACLE_PENETRATION_M = 0.002   # deepest arm-obstacle overlap allowed
+MAX_OBJECT_OBSTACLE_PENETRATION_M = 0.002  # the held object (welded can) can't tunnel through an obstacle either
 
 # --- Server ------------------------------------------------------------------
 SERVER_HOST = "127.0.0.1"

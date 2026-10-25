@@ -1,6 +1,9 @@
 """Frozen data contracts and module interfaces for ArgonTwin.
 
-Owner: integrator (Claude). CONTRACT_VERSION 1.0.1 is frozen (1.0.1 only adds finite-number validation): other owners code
+Owner: integrator (Claude). CONTRACT_VERSION 1.0.3 is frozen (1.0.1 adds finite-number validation;
+1.0.2 adds optional arm- and object-obstacle contact metrics, None in receipts from older simulators;
+1.0.3 adds SceneSpec.pickup_arm (default "left") and optional splat asset paths, so older scenes
+validate unchanged): other owners code
 against it and don't edit this file. Changes go through the integrator and bump
 the version.
 
@@ -26,7 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 import config
 
-CONTRACT_VERSION = "1.0.1"  # 1.0.1: reject NaN and infinity in every float field
+CONTRACT_VERSION = "1.0.3"  # 1.0.1: finite floats. 1.0.2: obstacle contact metrics. 1.0.3: pickup_arm, splat asset paths
 
 Vec3 = tuple[float, float, float]
 Quat = tuple[float, float, float, float]  # (w, x, y, z), MuJoCo order
@@ -45,6 +48,14 @@ Phase = Literal["approach", "grasp", "lift", "handover", "place", "settle"]
 
 class Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+
+ARM = Literal["left", "right"]
+
+# A viewer asset path, relative to web/assets/: segments of letters, digits, "_" and "-"
+# joined by "/", ending in .splat. No dots inside segments, so "..", absolute paths and
+# other extensions can't match.
+SPLAT_ASSET_PATTERN = r"^[A-Za-z0-9_\-]+(/[A-Za-z0-9_\-]+)*\.splat$"
 
 
 # --- Errors ------------------------------------------------------------------
@@ -72,6 +83,12 @@ class ObjectSpec(Strict):
     yaw_deg: float = Field(0.0, ge=-180.0, le=180.0)
     mass_kg: float = Field(0.3, gt=0.0, le=5.0)
     graspable: bool = False
+    visual_splat_path: Optional[str] = Field(
+        None, pattern=SPLAT_ASSET_PATTERN,
+        description="segmented splat of this object, relative to web/assets/, with its origin at the object's "
+                    "base center (pos_m) and axes aligned with the table frame at the start of the run. The viewer "
+                    "attaches it to the simulated body in Photoreal so it moves with the physics. "
+                    "Appearance only: physics uses kind and size_m")
 
     @model_validator(mode="after")
     def _size_matches_kind(self) -> "ObjectSpec":
@@ -95,6 +112,11 @@ class SceneSpec(Strict):
     target_m: Vec3
     evidence: list[str] = Field(default_factory=list, description="what in the video each estimate came from")
     source: Literal["argon", "manual"]
+    pickup_arm: ARM = Field("left", description="arm that picks the task object up and hands it to the other arm")
+    background_splat_path: Optional[str] = Field(
+        None, pattern=SPLAT_ASSET_PATTERN,
+        description="trained desk splat for this scene, relative to web/assets/, in sim coordinates; "
+                    "None = the default web/assets/desk.splat")
 
     @model_validator(mode="after")
     def _task_object_is_graspable(self) -> "SceneSpec":
@@ -114,9 +136,10 @@ class SceneSpec(Strict):
 class HandoverPlan(Strict):
     """Parameters the scripted controller in sim.py executes.
 
-    Sequence: left arm approaches and grasps the task object, lifts, moves to
-    the hand-over point; right arm grasps; left releases; right moves to the
-    target and releases at release_height_m above the table.
+    Sequence: the pickup arm (SceneSpec.pickup_arm, left by default) approaches and
+    grasps the task object, lifts, moves to the hand-over point; the other arm
+    grasps; the pickup arm releases; the receiving arm moves to the target and
+    releases at release_height_m above the table.
     """
 
     grasp_height_offset_m: float = Field(0.0, ge=-0.05, le=0.05, description="grasp point relative to object mid-height")
@@ -176,6 +199,9 @@ MetricName = Literal[
     "can_min_z_m",
     "can_final_speed_m_s",
     "max_arm_table_contact_force_n",
+    "max_arm_obstacle_contact_force_n",
+    "max_arm_obstacle_penetration_m",
+    "max_object_obstacle_penetration_m",
     "handover_completed",
     "left_grasped",
     "right_grasped",
@@ -194,7 +220,7 @@ class SupplementalCheck(Strict):
 
 class SupplementalCheckResult(Strict):
     check: SupplementalCheck
-    measured: float
+    measured: Optional[float] = Field(..., description="None when the simulator didn't measure this metric")
     passed: bool
 
 
@@ -248,8 +274,14 @@ class AttemptMetrics(Strict):
     can_final_speed_m_s: float = Field(..., ge=0.0)
     left_grasped: bool
     right_grasped: bool
-    handover_completed: bool = Field(..., description="right gripper held the object while the left gripper was open")
+    handover_completed: bool = Field(..., description="the receiving gripper held the object while the pickup gripper was open")
     max_arm_table_contact_force_n: float = Field(..., ge=0.0)
+    max_arm_obstacle_contact_force_n: Optional[float] = Field(
+        None, ge=0.0, description="peak arm contact force on fitted obstacles (laptop, screens); None = not measured")
+    max_arm_obstacle_penetration_m: Optional[float] = Field(
+        None, ge=0.0, description="deepest arm-obstacle penetration; None = not measured")
+    max_object_obstacle_penetration_m: Optional[float] = Field(
+        None, ge=0.0, description="deepest penetration of the task object into an obstacle (weld can't tunnel); None = not measured")
     grasp_assist_used: bool = Field(..., description="a weld attached the object; must be shown in the viewer")
     failure_phase: Optional[Phase] = Field(None, description="first phase where a measured condition failed")
     sim_time_s: float
@@ -294,6 +326,8 @@ class Verdict(Strict):
     passed: bool
     failed_checks: list[str]
     thresholds: dict[str, float]
+    obstacle_contact_measured: bool = Field(
+        False, description="True only when all three obstacle metrics were measured by the simulator")
 
 
 def judge(metrics: AttemptMetrics) -> Verdict:
@@ -309,14 +343,27 @@ def judge(metrics: AttemptMetrics) -> Verdict:
         failed.append(f"not at rest: {metrics.can_final_speed_m_s:.3f} m/s")
     if metrics.max_arm_table_contact_force_n > config.MAX_ARM_TABLE_CONTACT_FORCE_N:
         failed.append(f"arm hit table: {metrics.max_arm_table_contact_force_n:.1f} N")
+    force = metrics.max_arm_obstacle_contact_force_n
+    depth = metrics.max_arm_obstacle_penetration_m
+    if force is not None and force > config.MAX_ARM_OBSTACLE_CONTACT_FORCE_N:
+        failed.append(f"arm hit obstacle: {force:.1f} N")
+    if depth is not None and depth > config.MAX_ARM_OBSTACLE_PENETRATION_M:
+        failed.append(f"arm inside obstacle: {depth * 1000:.1f} mm")
+    obj_depth = metrics.max_object_obstacle_penetration_m
+    if obj_depth is not None and obj_depth > config.MAX_OBJECT_OBSTACLE_PENETRATION_M:
+        failed.append(f"object inside obstacle: {obj_depth * 1000:.1f} mm")
     return Verdict(
         passed=not failed,
         failed_checks=failed,
+        obstacle_contact_measured=force is not None and depth is not None and obj_depth is not None,
         thresholds={
             "can_target_tolerance_m": config.CAN_TARGET_TOLERANCE_M,
             "drop_margin_m": config.DROP_MARGIN_M,
             "max_can_speed_at_end_m_s": config.MAX_CAN_SPEED_AT_END_M_S,
             "max_arm_table_contact_force_n": config.MAX_ARM_TABLE_CONTACT_FORCE_N,
+            "max_arm_obstacle_contact_force_n": config.MAX_ARM_OBSTACLE_CONTACT_FORCE_N,
+            "max_arm_obstacle_penetration_m": config.MAX_ARM_OBSTACLE_PENETRATION_M,
+            "max_object_obstacle_penetration_m": config.MAX_OBJECT_OBSTACLE_PENETRATION_M,
         },
     )
 
@@ -328,7 +375,11 @@ def evaluate_supplemental(checks: list[SupplementalCheck], metrics: AttemptMetri
     }
     results = []
     for check in checks:
-        measured = float(getattr(metrics, check.metric))
+        raw = getattr(metrics, check.metric)
+        if raw is None:  # not measured by this simulator: the check can't pass
+            results.append(SupplementalCheckResult(check=check, measured=None, passed=False))
+            continue
+        measured = float(raw)
         results.append(SupplementalCheckResult(check=check, measured=measured, passed=ops[check.op](measured, check.value)))
     return results
 

@@ -11,6 +11,7 @@ directory under runs/ is served as REPLAY, with its recorded time.
 from __future__ import annotations
 
 import json
+import os
 import threading
 import traceback
 from datetime import datetime, timezone
@@ -58,6 +59,7 @@ class RunSummary(BaseModel):
     attempts: int
     source: Literal["LIVE", "REPLAY"]
     state: Literal["running", "done", "error"]
+    scene_background: Optional[str] = None  # the run's scene.background_splat_path (None = default desk)
 
 
 def _repo_path(relative: str) -> Path:
@@ -96,19 +98,18 @@ def _summary(run_id: str) -> RunSummary:
         attempts=len(manifest.attempts) if manifest else 0,
         source="LIVE" if live else "REPLAY",
         state=live["state"] if live else "done",
+        scene_background=manifest.scene.background_splat_path if manifest else None,
     )
 
 
 @app.get("/api/health")
 def health() -> dict:
-    try:
-        config.gemini_api_key()
-        key = True
-    except config.MissingSecret:
-        key = False
+    # Liveness must not read the credential pipe or wait for 1Password approval.
+    key = bool(os.environ.get("GEMINI_API_KEY"))
     return {
         "contract_version": CONTRACT_VERSION,
         "gemini_key_configured": key,
+        "gemini_key_mount_present": (config.REPO_ROOT / ".env").exists(),
         "splat_available": config.SPLAT_PATH.exists(),
         "model": config.GEMINI_MODEL,
         "agent": config.GEMINI_AGENT,
@@ -197,6 +198,15 @@ def start_run(request: StartRun) -> RunSummary:
     threading.Thread(target=work, name=f"run-{run_id}", daemon=True).start()
     return RunSummary(run_id=run_id, created_at=None, passed=None, attempts=0, source="LIVE", state="running")
 
+
+# Optional Gemma base vs fine-tuned comparison API (compare_api.py, owned by the spec session).
+# Guarded so the server still starts before that module exists.
+try:
+    import compare_api
+except ImportError:
+    compare_api = None
+if compare_api is not None:
+    app.include_router(compare_api.router)
 
 config.RUNS_DIR.mkdir(exist_ok=True)
 app.mount("/runs", StaticFiles(directory=config.RUNS_DIR), name="runs")
