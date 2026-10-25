@@ -67,6 +67,8 @@ const scanMaterials = new Map();  // gold-scan point materials by role
 const canvas = $("stage");
 // ?capture=1 keeps the last WebGL frame readable so a screenshot of the page includes the scene.
 const CAPTURE = new URLSearchParams(location.search).get("capture") === "1";
+// Opening view once the desk splat loads: Photoreal unless ?view=gold or ?view=solid.
+const START_VIEW = new URLSearchParams(location.search).get("view") ?? "photo";
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: CAPTURE });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setClearColor("#000000");
@@ -855,7 +857,7 @@ async function loadSplat() {
   } catch {
     /* no trained splat yet: Photoreal stays disabled and says why */
   }
-  await setScanMode(state.splatStyle);
+  await setScanMode(splatBuffer && SCAN_ORDER.includes(START_VIEW) ? START_VIEW : state.splatStyle);
 }
 
 function buildRealPoints() {

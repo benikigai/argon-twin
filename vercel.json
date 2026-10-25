@@ -1,3 +1,4 @@
 {
-  "outputDirectory": "web"
+  "outputDirectory": "web",
+  "cleanUrls": true
 }
