@@ -12,6 +12,10 @@ import { STLLoader } from "three/addons/loaders/STLLoader.js";
 const $ = (id) => document.getElementById(id);
 const GOLD = new THREE.Color("#e3b341");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+// The demo starts from a hand-written plan whose handover point is out of both arms' reach,
+// so attempt 1 fails for a visible reason and the loop has something real to fix.
+const DEMO_SCENE = "examples/desk_demo_bad_handover.json";
+const ARM_REACH_M = 0.7;  // rough ViperX reach from the arm base; used only for the on-screen note
 
 const state = {
   source: null,      // "api" | "replay"
@@ -239,6 +243,12 @@ function renderVerdict(a) {
   if (a.sim.metrics.grasp_assist_used) flags.push("Grasp assist: the can is welded to the gripper once it closes");
   if (a.mode === "ARGON_INVALID") flags.push("Argon's fix failed validation, so the plan was kept");
   if (a.mode === "MANUAL") flags.push("Plan written by hand");
+  const sc = state.run?.manifest?.scene;
+  if (sc) {
+    const dist = (b) => Math.hypot(...a.plan.handover_point_m.map((v, i) => v - b[i]));
+    const nearest = Math.min(dist(sc.left_arm_base_m), dist(sc.right_arm_base_m));
+    if (nearest > ARM_REACH_M) flags.push(`Handover point ${nearest.toFixed(2)} m from the nearest arm base, beyond its reach`);
+  }
   box.innerHTML = `<div class="word">${a.verdict.passed ? "Pass" : "Fail"}</div>
     <div class="reason">${escapeHtml(attemptHeadline(a))}</div>
     <div class="by">Measured by MuJoCo, attempt ${a.attempt}</div>
@@ -564,7 +574,7 @@ $("run").onclick = async () => {
     const res = await fetch("/api/runs", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scene: "examples/desk_manual.json" }),
+      body: JSON.stringify({ scene: DEMO_SCENE }),
     });
     const body = await res.json();
     if (!res.ok) throw new Error(body.detail ?? res.status);
