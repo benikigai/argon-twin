@@ -16,6 +16,7 @@ Updated as each part ships. Nothing in this repo predates the event.
 
 | Part | What it does | Status |
 |---|---|---|
+| `schemas.py`, `config.py` | Data contracts, module interfaces, deterministic pass/fail judge, model IDs and thresholds | Done (contract 1.0.0) |
 | `capture/` | Desk video → frames → camera poses → trained Gaussian splat | Planned |
 | `sim.py` | MuJoCo scene with two ALOHA arms, scripted hand-over, pass/fail checks | Planned |
 | `argon.py`, `loop.py` | Argon builds the twin from the video, critiques each attempt, patches the plan | Planned |

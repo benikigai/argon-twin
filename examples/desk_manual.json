@@ -1,0 +1,86 @@
+{
+  "scene": {
+    "table_shape": "round",
+    "table_size_m": [
+      0.8,
+      0.8
+    ],
+    "table_height_m": 0.74,
+    "objects": [
+      {
+        "name": "can",
+        "kind": "cylinder",
+        "size_m": [
+          0.033,
+          0.155
+        ],
+        "pos_m": [
+          -0.2,
+          0.05,
+          0.0
+        ],
+        "yaw_deg": 0.0,
+        "mass_kg": 0.35,
+        "graspable": true
+      },
+      {
+        "name": "laptop",
+        "kind": "box",
+        "size_m": [
+          0.36,
+          0.25,
+          0.02
+        ],
+        "pos_m": [
+          0.05,
+          0.15,
+          0.0
+        ],
+        "yaw_deg": 0.0,
+        "mass_kg": 0.3,
+        "graspable": false
+      }
+    ],
+    "task_object": "can",
+    "left_arm_base_m": [
+      -0.45,
+      0.0,
+      0.0
+    ],
+    "right_arm_base_m": [
+      0.45,
+      0.0,
+      0.0
+    ],
+    "handover_point_m": [
+      0.0,
+      -0.05,
+      0.25
+    ],
+    "target_m": [
+      0.22,
+      -0.1,
+      0.0
+    ],
+    "evidence": [
+      "manual placeholder estimate from IMG_1272 frames"
+    ],
+    "source": "manual"
+  },
+  "plan": {
+    "grasp_height_offset_m": 0.0,
+    "approach_yaw_deg": 0.0,
+    "pregrasp_clearance_m": 0.08,
+    "lift_height_m": 0.15,
+    "handover_point_m": [
+      0.0,
+      -0.05,
+      0.25
+    ],
+    "handover_yaw_offset_deg": 0.0,
+    "gripper_close_delay_s": 0.25,
+    "release_delay_s": 0.25,
+    "release_height_m": 0.02,
+    "max_speed_m_s": 0.25
+  }
+}
