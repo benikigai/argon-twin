@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" width="1200" height="700" font-family="system-ui, -apple-system, Helvetica, Arial, sans-serif">
+  <title>ArgonTwin target experience (concept illustration, not a screenshot)</title>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="55%" r="60%">
+      <stop offset="0%" stop-color="#2a2416"/>
+      <stop offset="100%" stop-color="#0b0b0d"/>
+    </radialGradient>
+    <pattern id="dots" width="9" height="9" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#d4a843" opacity=".55"/>
+    </pattern>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8a8576"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="700" fill="#0b0b0d"/>
+
+  <!-- top bar -->
+  <rect x="0" y="0" width="1200" height="54" fill="#0f0f12"/>
+  <line x1="0" y1="54" x2="1200" y2="54" stroke="#26262c"/>
+  <text x="24" y="35" font-size="22" font-weight="700" fill="#d4a843">ArgonTwin</text>
+  <text x="152" y="35" font-size="14" fill="#8a8576">Your desk, rehearsed by robots before hardware.</text>
+  <rect x="742" y="16" width="70" height="24" rx="12" fill="none" stroke="#3fb37f"/>
+  <text x="777" y="33" font-size="12" fill="#3fb37f" text-anchor="middle">LIVE</text>
+  <rect x="820" y="16" width="104" height="24" rx="12" fill="none" stroke="#26262c"/>
+  <text x="872" y="33" font-size="12" fill="#e8e2d0" text-anchor="middle">LIVE_ARGON</text>
+  <rect x="944" y="14" width="86" height="28" rx="6" fill="#141418" stroke="#d4a843"/>
+  <text x="987" y="33" font-size="13" fill="#d4a843" text-anchor="middle">Run loop</text>
+  <rect x="1038" y="14" width="68" height="28" rx="6" fill="#141418" stroke="#26262c"/>
+  <text x="1072" y="33" font-size="13" fill="#e8e2d0" text-anchor="middle">Replay</text>
+  <rect x="1114" y="14" width="62" height="28" rx="6" fill="#141418" stroke="#26262c"/>
+  <text x="1145" y="33" font-size="13" fill="#e8e2d0" text-anchor="middle">Gold</text>
+
+  <!-- stage -->
+  <rect x="0" y="55" width="850" height="505" fill="url(#glow)"/>
+  <!-- splat desk (gold point style) -->
+  <ellipse cx="425" cy="380" rx="300" ry="110" fill="url(#dots)"/>
+  <ellipse cx="425" cy="380" rx="300" ry="110" fill="none" stroke="#d4a843" stroke-opacity=".5"/>
+  <!-- laptop -->
+  <polygon points="430,330 540,318 560,360 450,374" fill="url(#dots)" stroke="#d4a843" stroke-opacity=".7"/>
+  <polygon points="430,330 540,318 535,250 428,262" fill="url(#dots)" stroke="#d4a843" stroke-opacity=".7"/>
+  <!-- target marker -->
+  <ellipse cx="610" cy="410" rx="30" ry="11" fill="none" stroke="#3fb37f" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="610" y="440" font-size="11" fill="#3fb37f" text-anchor="middle">target</text>
+
+  <!-- left arm -->
+  <g stroke="#e8e2d0" stroke-width="11" stroke-linecap="round" fill="none">
+    <path d="M190,420 L230,300 L330,250 L395,272"/>
+  </g>
+  <rect x="172" y="410" width="38" height="26" rx="4" fill="#2b2b31" stroke="#e8e2d0"/>
+  <g stroke="#e8e2d0" stroke-width="5" stroke-linecap="round"><line x1="395" y1="262" x2="412" y2="262"/><line x1="395" y1="284" x2="412" y2="284"/></g>
+  <!-- right arm -->
+  <g stroke="#e8e2d0" stroke-width="11" stroke-linecap="round" fill="none">
+    <path d="M660,420 L620,300 L520,250 L455,272"/>
+  </g>
+  <rect x="640" y="410" width="38" height="26" rx="4" fill="#2b2b31" stroke="#e8e2d0"/>
+  <g stroke="#e8e2d0" stroke-width="5" stroke-linecap="round"><line x1="455" y1="262" x2="438" y2="262"/><line x1="455" y1="284" x2="438" y2="284"/></g>
+  <!-- can at hand-over -->
+  <rect x="413" y="248" width="24" height="44" rx="5" fill="#c9ccd2" stroke="#ffffff" stroke-width="1"/>
+  <rect x="413" y="262" width="24" height="10" fill="#e05252"/>
+  <path d="M425,300 C470,360 560,390 600,404" stroke="#3fb37f" stroke-width="2" stroke-dasharray="6 5" fill="none" marker-end="url(#arrow)"/>
+  <text x="300" y="232" font-size="12" fill="#8a8576">left arm grasps the can</text>
+  <text x="470" y="226" font-size="12" fill="#8a8576">hand-over</text>
+
+  <!-- verdict badge -->
+  <rect x="22" y="74" width="250" height="92" rx="8" fill="#0b0b0d" fill-opacity=".85" stroke="#26262c"/>
+  <text x="40" y="106" font-size="24" font-weight="700" fill="#3fb37f">PASS</text>
+  <text x="40" y="126" font-size="12" fill="#8a8576">MuJoCo verdict · attempt 2</text>
+  <text x="40" y="146" font-size="12" fill="#8a8576">• can within 3 cm of target</text>
+  <text x="40" y="160" font-size="12" fill="#8a8576">• hand-over completed</text>
+
+  <!-- insets -->
+  <rect x="660" y="74" width="170" height="96" rx="6" fill="#141418" stroke="#26262c"/>
+  <rect x="668" y="82" width="154" height="66" fill="#1d1d22"/>
+  <ellipse cx="745" cy="122" rx="52" ry="18" fill="url(#dots)"/>
+  <text x="668" y="162" font-size="11" fill="#8a8576">overhead · hand-over</text>
+  <rect x="660" y="178" width="170" height="96" rx="6" fill="#141418" stroke="#26262c"/>
+  <rect x="668" y="186" width="154" height="66" fill="#1d1d22"/>
+  <rect x="736" y="200" width="18" height="36" rx="4" fill="#c9ccd2"/>
+  <text x="668" y="266" font-size="11" fill="#8a8576">right wrist · grasp</text>
+
+  <text x="24" y="548" font-size="12" fill="#8a8576">MuJoCo rollout replayed over the desk's Gaussian splat (gold point style) · alignment set by hand</text>
+
+  <!-- critique rail -->
+  <rect x="851" y="55" width="349" height="505" fill="#0f0f12"/>
+  <line x1="851" y1="55" x2="851" y2="560" stroke="#26262c"/>
+  <rect x="868" y="72" width="315" height="300" rx="8" fill="#141418" stroke="#26262c"/>
+  <text x="884" y="98" font-size="12" font-weight="700" fill="#d4a843" letter-spacing="1.2">ARGON'S CRITIQUE · ATTEMPT 1</text>
+  <text x="884" y="126" font-size="13" fill="#e8e2d0">1. Left gripper closed 3 cm above the</text>
+  <text x="900" y="144" font-size="13" fill="#e8e2d0">can's middle, so the grip was shallow.</text>
+  <text x="884" y="168" font-size="13" fill="#e8e2d0">2. At the hand-over the can tilted and</text>
+  <text x="900" y="186" font-size="13" fill="#e8e2d0">slipped before the right gripper closed.</text>
+  <rect x="884" y="200" width="136" height="76" rx="4" fill="#1d1d22" stroke="#26262c"/>
+  <rect x="1030" y="200" width="136" height="76" rx="4" fill="#1d1d22" stroke="#26262c"/>
+  <text x="952" y="243" font-size="11" fill="#8a8576" text-anchor="middle">keyframe: grasp</text>
+  <text x="1098" y="243" font-size="11" fill="#8a8576" text-anchor="middle">keyframe: drop</text>
+  <text x="884" y="302" font-size="12" fill="#8a8576" font-family="Menlo, monospace">grasp_height_offset_m: -0.02</text>
+  <text x="884" y="320" font-size="12" fill="#8a8576" font-family="Menlo, monospace">release_delay_s: 0.45</text>
+  <text x="884" y="350" font-size="11" fill="#5f5b50" font-family="Menlo, monospace">LIVE_ARGON · tokens and time from the API</text>
+  <text x="884" y="400" font-size="12" fill="#5f5b50">Example text, not real model output.</text>
+
+  <!-- filmstrip -->
+  <rect x="0" y="560" width="1200" height="84" fill="#0f0f12"/>
+  <line x1="0" y1="560" x2="1200" y2="560" stroke="#26262c"/>
+  <rect x="24" y="574" width="230" height="58" rx="8" fill="#141418" stroke="#26262c"/>
+  <text x="38" y="598" font-size="14" font-weight="600" fill="#e05252">Attempt 1 ✗</text>
+  <text x="38" y="618" font-size="12" fill="#8a8576">dropped at hand-over</text>
+  <line x1="262" y1="603" x2="300" y2="603" stroke="#8a8576" marker-end="url(#arrow)"/>
+  <rect x="308" y="574" width="230" height="58" rx="8" fill="#141418" stroke="#26262c"/>
+  <text x="322" y="598" font-size="14" font-weight="600" fill="#d4a843">Argon critique</text>
+  <text x="322" y="618" font-size="12" fill="#8a8576">diagnosis + plan patch</text>
+  <line x1="546" y1="603" x2="584" y2="603" stroke="#8a8576" marker-end="url(#arrow)"/>
+  <rect x="592" y="574" width="230" height="58" rx="8" fill="#141418" stroke="#d4a843"/>
+  <text x="606" y="598" font-size="14" font-weight="600" fill="#3fb37f">Attempt 2 ✓</text>
+  <text x="606" y="618" font-size="12" fill="#8a8576">on target · MuJoCo verified</text>
+
+  <!-- caption -->
+  <rect x="0" y="652" width="1200" height="48" fill="#d4a843"/>
+  <text x="600" y="682" font-size="16" font-weight="700" fill="#0b0b0d" text-anchor="middle" letter-spacing="1">TARGET EXPERIENCE · concept illustration, not a screenshot of working software</text>
+</svg>

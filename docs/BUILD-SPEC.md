@@ -36,6 +36,7 @@ On the Three.js viewer: the splat of Ben's real desk, the two arms overlaid. Att
 The new capability is output, not input: with `background=True` and `max_output_tokens` above 65,536, Argon can write a large, multi-file artifact in one pass. Track 2's own text says this ("generate high-fidelity 3D games and procedural worlds in a single pass"). Use it where one consistent pass genuinely matters:
 
 - **One-pass world build (`argon.build_world`):** Argon gets the full desk video, the ALOHA model description and our contracts in one request (long input), and returns in one background call a `WorldBuildBody`: the `SceneSpec` (every object's size and position with evidence), the initial `HandoverPlan`, and declarative `SupplementalCheck`s. `sim.py` turns the scene into MJCF deterministically; supplemental checks are evaluated on measured metrics and shown, but never change pass/fail and are never executed as code.
+- **Sequencing (Ben):** build this demonstration only after the core hand-over passes in `loop.py`. It must not change the 1.0.0 contracts; any integration of a larger generated package is planned separately later. Report output tokens and thinking tokens as separate numbers (`ArgonUsage.output_tokens`, `ArgonUsage.thought_tokens`). No run has produced more than 65,536 output tokens yet.
 - **Show real numbers only.** The viewer shows the `usage` returned by that call (output and thinking tokens, wall time). If a run comes in under 65,536 tokens, show that number as it is; don't pad the prompt to cross the line.
 - **Not live on stage.** A long decode likely takes minutes (the builder guide says to allow 15–20 minute timeouts for `high` thinking). Run it during the day and once more before judging; on stage, run the fast critique → patch loop live and show the world build's receipt.
 - **Don't do:** have Argon type out training trajectories or collision meshes. Trajectories come from MuJoCo rollouts; geometry comes from primitives and menagerie meshes. Token volume is not the point; a working twin is.
@@ -78,7 +79,7 @@ server.py ── /api/runs, /api/runs/{id}, /api/runs/{id}/attempts/{n}/rollout 
 
 | Owner | Files | Notes |
 |---|---|---|
-| **Claude (integrator, design owner)** | `schemas.py`, `config.py`, `loop.py`, `server.py`, `web/`, `examples/`, `README.md`, `docs/` | Owns the contracts and pass/fail thresholds |
+| **Claude (integrator, design owner)** | `schemas.py`, `config.py`, `loop.py`, `server.py`, `export_replay.py`, `web/`, `examples/`, `README.md`, `docs/` | Owns the contracts and pass/fail thresholds |
 | **Antigravity / Argon** | `argon.py`, `managed_agent.py` | All Gemini and Google API calls. Reads the key only through `config.gemini_api_key()` |
 | **Codex** | `sim.py`, `tests/` (physics and contract verification), `capture/` | Splat pipeline for `capture/IMG_1272.MOV` on Colab; MuJoCo + `mink` scripted hand-over |
 
@@ -138,6 +139,14 @@ def run_loop(*, video_path: Path | None, scene_path: Path | None = None,
              max_attempts: int = config.MAX_ATTEMPTS, sweep: bool = False) -> RunManifest
     # video_path → argon.build_world; scene_path → MANUAL mode from examples/*.json.
 ```
+
+### Hosting (Ben, 11:47)
+
+- **Live backend:** `uvicorn server:app --port 8000` on Ben's Mac (`http://127.0.0.1:8000`). Live runs start here; MuJoCo and Argon calls only ever run here.
+- **Vercel now:** `https://argon-twin.vercel.app` serves a labeled TARGET PREVIEW concept page, deployed separately from an isolated static folder. It is not the live app.
+- **Vercel later (`web/` only):** a public viewer that plays recorded runs, labeled `REPLAY (recorded <time>)` on screen. It never calls Gemini or runs MuJoCo, and holds no secrets.
+- `export_replay.py <run_id>` (integrator) copies a finished run's manifest, keyframes and rollout into `web/replay/<run_id>/` and updates `web/replay/index.json`. The viewer uses `/api/runs` when the local server answers and falls back to `web/replay/` otherwise.
+- Deploys happen only when Ben asks.
 
 ### Contract notes
 
