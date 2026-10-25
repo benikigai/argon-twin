@@ -527,6 +527,44 @@ body.touring #planner { visibility: hidden; }
 }
 
 /* ?tour=1&capture=1: a fixed 1920x1080 frame with no cursor and no tour chrome. */
-html.tour-recording, html.tour-recording body { width: 1920px; height: 1080px; cursor: none; }
-html.tour-recording * { cursor: none !important; }
+/* During the tour, Argon's review docks as a narrow card so the arms and the moving
+   handover marker stay in view: its explanation and its changes, nothing else. */
+body.touring .subtitles { width: min(27rem, 28vw); font-size: .82rem; padding: .7rem .85rem; }
+body.touring .subtitles .review-input,
+body.touring .subtitles .review-section:first-of-type,
+body.touring .subtitles .review-note,
+body.touring .subtitles .review-next,
+body.touring .subtitles .more { display: none; }
+body.touring .subtitles .review-diagnosis { font-size: .82rem; }
+body.touring .subtitles .review-section h2 { font-size: .9rem; }
+
+/* ?tour=1&capture=1: the largest 16:9 frame that fits the window, centered on black, with
+   type scaled as if the frame were 1920 px wide (1 rem = frame width / 120), no cursor and
+   no tour chrome. Record any 16:9 window and scale it in post. */
+html.tour-recording {
+  --frame-w: min(100vw, calc(100vh * 16 / 9));
+  --frame-h: min(100vh, calc(100vw * 9 / 16));
+  height: 100vh;
+  background: #000;
+  font-size: calc(var(--frame-w) / 120);
+  overflow: hidden;
+}
+html.tour-recording body {
+  position: relative;
+  width: var(--frame-w);
+  height: var(--frame-h);
+  margin: calc((100vh - var(--frame-h)) / 2) auto 0;
+}
+html.tour-recording .tour-band { position: absolute; }
+html.tour-recording .tour-caption { font-size: 2.6rem; }
+html.tour-recording .tour-badge { font-size: 1.05rem; }
+html.tour-recording, html.tour-recording * { cursor: none !important; }
 html.tour-recording .status { visibility: hidden; }
+.tour-phone {
+  position: absolute; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, .94);
+  transition: opacity .5s ease;
+}
+.tour-phone.out { opacity: 0; }
+.tour-phone video { height: 86%; aspect-ratio: 9 / 16; border-radius: 1rem; border: 1px solid var(--line); background: #000; }

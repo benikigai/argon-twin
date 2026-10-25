@@ -3,25 +3,30 @@
 // A "Tour" button in the status bar, or ?tour=1 to start it after load (for recording).
 // Esc, the Tour button again, Run the loop or Edit plan stop it and hand control back.
 // It only replays the recorded run: no API calls, and it never blocks a live run.
-// ?tour=1&capture=1 is the recording mode: fixed 1920x1080 page, no cursor, no tour
-// chrome, and one second of still frame before the first move and after the verdict.
+// ?tour=1&capture=1 is the recording mode: the largest 16:9 frame the window allows, no
+// cursor, no tour chrome, and one second of still frame before the first move and after the verdict.
 
 const RUN_ID = "20261025-134505";
 const LEAD_S = 1;   // still frame before anything moves
 const TAIL_S = 1;   // still frame after the final verdict
 
-// Every number is from web/replay/20261025-134505/verification.json (and the manifest):
-// 216.19 N arm contact on attempt 1, 20 keyframes, a 12.22 s Argon call, 5.05 mm target error
-// and 0 N obstacle contact on attempt 2. The 1.6 to 3.7 mm plane fit is from capture/fit_collision_scene.py.
-const STEPS = [
-  { at: 0, caption: "The real desk: a Gaussian splat trained from a 10 second phone video" },
-  { at: 6, caption: "Screens and laptop fitted as collision boxes, 1.6 to 3.7 mm plane fit" },
-  { at: 12, caption: "One physics twin, three views" },
-  { at: 18, caption: "Attempt 1: the arm drives the can into the screens. 216 N. MuJoCo: FAIL" },
-  { at: 26, caption: "Gemini 4 Argon reads 20 frames and the physics, finds the cause, moves the handover point (12.2 s call)" },
-  { at: 37, caption: "Attempt 2: clears the screens. 5 mm from target, 0 N contact. PASS" },
-];
-const END_S = 46;
+// Exactly 60 s from window.__tourStart to window.__tourDone: a 1 s still, this 58 s timeline,
+// then a 1 s still on the PASS verdict. Times are seconds after the first still ends.
+// Every number is checked: 10.4 s / 52 frames / 68,192 Gaussians / Colab T4 from the capture
+// receipts; 1.6 to 3.7 mm from capture/fit_collision_scene.py; the rest from
+// web/replay/20261025-134505/verification.json (216.19 N, 20 keyframes, a 12.22 s Argon call,
+// 5.05 mm from target and 0 N obstacle contact on attempt 2).
+const T = { phone: 0, gaussians: 6, splat: 10, colliders: 16, views: 22, attempt1: 28, argon: 36, attempt2: 49, end: 58 };
+const CAPTIONS = {
+  phone: "10.4 s of iPhone video is the whole input",
+  gaussians: "52 frames to 68,192 Gaussians on a Colab T4, cropped to the desk",
+  splat: "The real desk: a Gaussian splat trained from that video",
+  colliders: "Screens and laptop fitted as collision boxes, 1.6 to 3.7 mm plane fit",
+  views: "One physics twin, three views",
+  attempt1: "Attempt 1: the arm drives the can into the screens. 216 N. MuJoCo: FAIL",
+  argon: "Gemini 4 Argon reads 20 frames and the physics, finds the cause, moves the handover point (12.2 s call)",
+  attempt2: "Attempt 2: clears the screens. 5 mm from target, 0 N contact. PASS",
+};
 const VIEW_NOTES = { gold: "Gold: the scan", solid: "Solid: what physics collides with", photo: "Photoreal: the real desk" };
 
 const params = new URLSearchParams(location.search);
@@ -31,6 +36,7 @@ let hooks = null;
 let active = null;  // { token } while a tour runs
 let band = null;
 let button = null;
+let phoneEl = null;
 
 class Stopped extends Error {}
 
@@ -52,7 +58,10 @@ export function setup(h) {
   }
   window.addEventListener("keydown", (e) => { if (e.key === "Escape" && active) stop(); });
 
-  if (RECORDING) document.documentElement.classList.add("tour-recording");
+  if (RECORDING) {
+    document.documentElement.classList.add("tour-recording");
+    window.dispatchEvent(new Event("resize"));  // re-fit the renderer and camera to the 16:9 frame
+  }
   if (params.get("tour") === "1") h.ready.then(() => start());
 }
 
@@ -62,6 +71,7 @@ function liveRunning() {
 
 async function start() {
   if (active) return;
+  window.__tourDone = false;
   if (liveRunning()) {
     // Starting the tour would take the screen away from a live run; offer it afterwards instead.
     button.title = "The tour is available once the live run finishes.";
@@ -75,8 +85,8 @@ async function start() {
   showBand();
   try {
     await run(token);
+    window.__tourDone = true;  // a recorder or test can stop on this
     if (!RECORDING) stop();
-    else window.__tourDone = true;  // the recorder can stop on this
   } catch (err) {
     if (!(err instanceof Stopped)) { console.error(err); stop(); }
   }
@@ -92,6 +102,8 @@ function stop() {
   document.body.classList.remove("touring");
   band?.remove();
   band = null;
+  phoneEl?.remove();
+  phoneEl = null;
   button.textContent = "Tour";
   button.setAttribute("aria-pressed", "false");
 }
@@ -116,39 +128,71 @@ async function run(token) {
   if (h.splatReady()) await h.setScanMode("photo");
   await sleep(1200, check);  // let the can's own splat attach before the clock starts
   h.heroCamera();
-  setCaption("");
+  const phone = await phoneClip(check);
 
-  const t0 = performance.now() + LEAD_S * 1000;
+  // The first still: the phone clip's first frame and the opening caption, nothing moving.
+  window.__tourStart = performance.now();
+  setCaption(CAPTIONS.phone);
+  const t0 = window.__tourStart + LEAD_S * 1000;
   const at = (s) => sleepUntil(t0 + s * 1000, check);
-  orbitCamera(t0, token);  // runs beside the timeline; it never holds up a step
 
-  await at(STEPS[0].at); setCaption(STEPS[0].caption);
-  await at(STEPS[1].at); setCaption(STEPS[1].caption); h.setColliders(true);
-  await at(STEPS[2].at); h.setColliders(false);
+  await at(T.phone);
+  phone.play();
+  await at(T.gaussians); setCaption(CAPTIONS.gaussians);
+  phone.close();
+  await h.setScanMode("gold");
+  orbitCamera(t0 + T.gaussians * 1000, (T.attempt1 - T.gaussians) * 1000, token);  // beside the timeline; never holds up a step
+
+  await at(T.splat); setCaption(CAPTIONS.splat);
+  if (h.splatReady()) await h.setScanMode("photo");
+  await at(T.colliders); setCaption(CAPTIONS.colliders); h.setColliders(true);
+  await at(T.views); h.setColliders(false);
   for (const [i, mode] of ["gold", "solid", "photo"].entries()) {
-    await at(STEPS[2].at + i * 2);
+    await at(T.views + i * 2);
     if (mode === "photo" && !h.splatReady()) continue;
     await h.setScanMode(mode);
-    setCaption(STEPS[2].caption, VIEW_NOTES[mode]);
+    setCaption(CAPTIONS.views, VIEW_NOTES[mode]);
   }
 
-  await at(STEPS[3].at); setCaption(STEPS[3].caption);
+  await at(T.attempt1); setCaption(CAPTIONS.attempt1);
   h.heroCamera();  // the orbit ends here; snap to the front shot in case a frame was missed
-  state.speed = rolloutSpeed(state, 1, STEPS[4].at - STEPS[3].at - 0.4);
+  state.speed = rolloutSpeed(state, 1, T.argon - T.attempt1 - 0.6);
   await h.goTo(attemptIndex(1), true);
 
-  await at(STEPS[4].at); setCaption(STEPS[4].caption);
+  await at(T.argon); setCaption(CAPTIONS.argon);
   state.speed = 1;
   await h.goTo(critiqueIndex, false);
   const a1 = state.steps[critiqueIndex].attempt;
-  moveHandover(a1, critiqueIndex, t0 + (STEPS[4].at + 1.5) * 1000, 3000, check).catch(() => {});
+  moveHandover(a1, critiqueIndex, t0 + (T.argon + 2) * 1000, 5000, check).catch(() => {});
 
-  await at(STEPS[5].at); setCaption(STEPS[5].caption);
-  state.speed = rolloutSpeed(state, 2, END_S - STEPS[5].at - 1.2);
+  await at(T.attempt2); setCaption(CAPTIONS.attempt2);
+  state.speed = rolloutSpeed(state, 2, T.end - T.attempt2 - 1.2);
   await h.goTo(attemptIndex(2), true);
 
-  await at(END_S + TAIL_S);
+  await at(T.end + TAIL_S);
   state.speed = 1;
+}
+
+// The phone walkthrough over the stage, sped up so the whole 10.4 s clip fits its step.
+async function phoneClip(check) {
+  const wrap = document.createElement("div");
+  wrap.className = "tour-phone";
+  const video = document.createElement("video");
+  Object.assign(video, { src: "assets/desk-scan-blurred.mp4", muted: true, playsInline: true, preload: "auto" });
+  wrap.append(video);
+  document.querySelector(".stage").append(wrap);
+  await Promise.race([
+    new Promise((r) => video.addEventListener("canplaythrough", r, { once: true })),
+    new Promise((r) => setTimeout(r, 5000)),
+  ]);
+  check();
+  const play = () => {
+    video.playbackRate = Math.max(1, (video.duration || 10.4) / (T.gaussians - T.phone - 0.3));
+    video.play().catch(() => {});
+  };
+  const close = () => { wrap.classList.add("out"); setTimeout(() => wrap.remove(), 600); };
+  phoneEl = wrap;
+  return { play, close };
 }
 
 // Play an attempt's whole rollout in about `seconds`.
@@ -157,18 +201,17 @@ function rolloutSpeed(state, attempt, seconds) {
   return Math.max(1, a.sim.metrics.sim_time_s / seconds);
 }
 
-// Slow orbit through the first three steps, ending exactly on the front hero shot.
-function orbitCamera(t0, token) {
+// One slow orbit from the Gaussians beat to attempt 1, ending exactly on the front hero shot.
+function orbitCamera(startAt, duration, token) {
   const { camera, controls, heroCamera } = hooks;
   heroCamera();
   const target = controls.target.clone();
   const offset = camera.position.clone().sub(target);
-  const duration = STEPS[3].at * 1000;
   return new Promise((resolve) => {
     const frame = (now) => {
       if (active !== token) return resolve();
-      if (now - t0 > duration + 250) return resolve();  // late frame: the timeline already moved on
-      const u = Math.min(1, Math.max(0, (now - t0) / duration));
+      if (now - startAt > duration + 250) return resolve();  // late frame: the timeline already moved on
+      const u = Math.min(1, Math.max(0, (now - startAt) / duration));
       const az = -0.5 * Math.sin(Math.PI * u);          // swing about 29 degrees and back
       const zoom = 1 - 0.14 * Math.sin(Math.PI * u);    // drift in a little at the middle
       const x = offset.x * Math.cos(az) - offset.z * Math.sin(az);

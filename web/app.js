@@ -1395,7 +1395,7 @@ const ready = main();
 
 // Guided tour (tour.js): a scripted walk through the recorded Celsius run. It drives the
 // viewer only through these hooks, so every live control keeps working as before.
-import("./tour.js?v=2").then((m) => m.setup({
+import("./tour.js?v=4").then((m) => m.setup({
   ready, state, camera, controls, heroCamera, goTo, loadRun, render, renderPhases, renderMarkers, setScanMode, setCloseup,
   setColliders(on) { state.showColliders = on; applyColliders(); },
   splatReady: () => splatBuffer !== null,
