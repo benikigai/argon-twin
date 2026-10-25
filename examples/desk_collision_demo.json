@@ -1,0 +1,158 @@
+{
+  "scene": {
+    "table_shape": "round",
+    "table_size_m": [
+      0.8,
+      0.8
+    ],
+    "table_height_m": 0.74,
+    "objects": [
+      {
+        "name": "can",
+        "kind": "cylinder",
+        "size_m": [
+          0.033,
+          0.155
+        ],
+        "pos_m": [
+          -0.15,
+          -0.28,
+          0
+        ],
+        "yaw_deg": 0.0,
+        "mass_kg": 0.35,
+        "graspable": true
+      },
+      {
+        "name": "upper_screen",
+        "kind": "box",
+        "size_m": [
+          0.37799283221839564,
+          0.02807721286591519,
+          0.25191769866522307
+        ],
+        "pos_m": [
+          0.009415069667664526,
+          0.21007626389232664,
+          0.19467514478478282
+        ],
+        "yaw_deg": 16.28008069713922,
+        "mass_kg": 0.3,
+        "graspable": false
+      },
+      {
+        "name": "lower_screen",
+        "kind": "box",
+        "size_m": [
+          0.3629736562484939,
+          0.07140104182827156,
+          0.24357593400189922
+        ],
+        "pos_m": [
+          0.0006267657539258675,
+          0.1648428468508854,
+          -0.004691222033609702
+        ],
+        "yaw_deg": 14.222270151551504,
+        "mass_kg": 0.3,
+        "graspable": false
+      },
+      {
+        "name": "laptop_base",
+        "kind": "box",
+        "size_m": [
+          0.3771428194354464,
+          0.25066433919701575,
+          0.05027142802470944
+        ],
+        "pos_m": [
+          0.03712224613894825,
+          0.0013836789933789478,
+          -0.012687001552621271
+        ],
+        "yaw_deg": 9.567160307174497,
+        "mass_kg": 0.3,
+        "graspable": false
+      },
+      {
+        "name": "left_screen",
+        "kind": "box",
+        "size_m": [
+          0.33035017374155645,
+          0.11671170565356728,
+          0.252716540404145
+        ],
+        "pos_m": [
+          -0.3356784222881884,
+          0.01306929159716469,
+          -0.00897699253561118
+        ],
+        "yaw_deg": 51.91400494122206,
+        "mass_kg": 0.3,
+        "graspable": false
+      },
+      {
+        "name": "left_base",
+        "kind": "box",
+        "size_m": [
+          0.25133987953016607,
+          0.2399365412113273,
+          0.04399165561683052
+        ],
+        "pos_m": [
+          -0.3005411556129564,
+          -0.07888320744205517,
+          -0.004057023550882233
+        ],
+        "yaw_deg": 29.70796359191995,
+        "mass_kg": 0.3,
+        "graspable": false
+      }
+    ],
+    "task_object": "can",
+    "left_arm_base_m": [
+      -0.55,
+      -0.25,
+      0
+    ],
+    "right_arm_base_m": [
+      0.55,
+      -0.25,
+      0
+    ],
+    "handover_point_m": [
+      1.05,
+      -0.75,
+      0.55
+    ],
+    "target_m": [
+      0.24,
+      -0.23,
+      0
+    ],
+    "evidence": [
+      "Table, can and laptop: hand estimates from IMG_1272 frames.",
+      "scene.handover_point_m is deliberately out of both arms' reach, so the critique input never contains a passing handover point. The run executes the plan's own handover point.",
+      "Screen and laptop collision boxes fitted to COLMAP correspondences in 0004.jpg using the trained splat table frame. Manually selected panel corners, 8 mm inflation; boxes conservatively enclose tilt. Unobserved surfaces remain uncertain. Robot pedestals and the virtual task can use the clear foreground workspace; this is a new layout, not an old run with changed graphics.",
+      "Robot pedestals and virtual task can relocated to the clear foreground side of the fitted laptop obstacles. This is a new scene; prior runs did not test these collision surfaces.",
+      "Demo start: the plan's handover point (0, 0.21, 0.30) is deliberately behind the fitted screens, so attempt 1 collides. The safe fixture is examples/desk_collision.json."
+    ],
+    "source": "manual"
+  },
+  "plan": {
+    "grasp_height_offset_m": 0.0,
+    "approach_yaw_deg": 0.0,
+    "pregrasp_clearance_m": 0.08,
+    "lift_height_m": 0.15,
+    "handover_point_m": [
+      0.0,
+      0.21,
+      0.3
+    ],
+    "handover_yaw_offset_deg": 0.0,
+    "gripper_close_delay_s": 0.25,
+    "release_delay_s": 0.25,
+    "release_height_m": 0.02,
+    "max_speed_m_s": 0.25
+  }
+}
