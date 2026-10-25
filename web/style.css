@@ -248,9 +248,16 @@ button.quiet:hover { color: var(--paper); border-color: transparent; }
 .rail .empty { color: var(--dim); padding: .6rem 0; }
 
 @media (max-width: 900px) {
+  .masthead { top: 1rem; left: 1rem; }
   .masthead p, .evidence { display: none; }
+  .status { top: 1rem; right: 1rem; flex-wrap: wrap; justify-content: flex-end; max-width: 60%; }
+  .source { flex-basis: 100%; justify-content: flex-end; margin: 0 0 .2rem; font-size: .9rem; }
+  .verdict { left: 1rem; bottom: 4.5rem; }
   .verdict .word { font-size: var(--step-3); }
-  .status { top: auto; bottom: 3rem; right: 1rem; }
+  .verdict .reason { font-size: var(--step-1); }
+  .stage-foot { left: 1rem; right: 1rem; }
+  .subtitles { bottom: 4.5rem; }
+  .rail { padding: .8rem 1rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

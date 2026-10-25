@@ -2,7 +2,8 @@
 // Live data comes from the local server (/api/runs). When that isn't reachable
 // (e.g. on Vercel) the viewer plays recorded runs from replay/ and says so.
 //
-// Keys: ← → step through the loop, space replays, T cycles the desk scan (gold, photoreal, off).
+// Keys: ← → step through the loop, space replays, T cycles the desk scan (gold, photoreal, off),
+// H returns to the front hero camera.
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -41,9 +42,6 @@ camera.position.set(0.0, 1.05, 1.6);
 const controls = new OrbitControls(camera, canvas);
 controls.target.set(0, 0.12, 0);
 controls.enableDamping = true;
-controls.autoRotate = !reduceMotion;
-controls.autoRotateSpeed = 0.35;
-canvas.addEventListener("pointerdown", () => { controls.autoRotate = false; });
 
 scene.add(new THREE.HemisphereLight("#fff5dc", "#101014", 1.1));
 const key = new THREE.DirectionalLight("#ffffff", 1.6);
@@ -63,6 +61,30 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  heroCamera();
+}
+
+// Fixed front shot: both arm bases framed symmetrically, table centered, looking
+// along +y in MuJoCo coordinates (from the camera's starting side of the table).
+// Drag to look around; H or double-click returns here.
+function heroCamera() {
+  const sc = state.run?.manifest?.scene;
+  const left = sc?.left_arm_base_m ?? [-0.45, 0, 0];
+  const right = sc?.right_arm_base_m ?? [0.45, 0, 0];
+  const cx = (left[0] + right[0]) / 2;
+  const cy = (left[1] + right[1]) / 2;
+  const halfSpan = Math.abs(right[0] - left[0]) / 2 + 0.22;        // arm bases plus their reach outward
+  const hfov = 2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+  const halfHeight = 0.38;                                            // arms reach about 0.6 m above the table
+  const vfov = THREE.MathUtils.degToRad(camera.fov);
+  const fitWidth = halfSpan / Math.tan(hfov / 2);
+  const fitHeight = halfHeight / Math.tan(vfov / 2);
+  const distance = Math.max(fitWidth, fitHeight) * 1.5;               // margin for the verdict and frames overlays
+  const elevation = THREE.MathUtils.degToRad(24);
+  const target = new THREE.Vector3(cx, 0.08, -cy);                    // MuJoCo (x, y, z) -> Three (x, z, -y)
+  camera.position.set(cx, target.y + distance * Math.sin(elevation), -cy + distance * Math.cos(elevation));
+  controls.target.copy(target);
+  controls.update();
 }
 window.addEventListener("resize", resize);
 resize();
@@ -549,6 +571,7 @@ $("run").onclick = async () => {
     await loadRun(body.run_id);
     state.current = 0;
     render();
+    heroCamera();
     pollLive();
   } catch (err) {
     $("source").textContent = `Couldn't start a run: ${err.message}`;
@@ -562,6 +585,7 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "ArrowRight") goTo(state.current + 1);
   else if (e.key === "ArrowLeft") goTo(state.current - 1);
   else if (e.key === " ") { e.preventDefault(); $("replay").click(); }
+  else if (e.key.toLowerCase() === "h") heroCamera();
   else if (e.key.toLowerCase() === "t") setScanMode(SCAN_ORDER[(SCAN_ORDER.indexOf(state.splatStyle) + 1) % 3]);
 });
 
@@ -598,6 +622,8 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
+canvas.addEventListener("dblclick", heroCamera);
+
 async function main() {
   state.source = await detectSource();
   let runs = [];
@@ -606,6 +632,7 @@ async function main() {
   const pick = runs.find((r) => r.run_id === requested) ?? runs.find((r) => r.state === "running") ?? runs.find((r) => r.attempts > 0);
   if (pick) await loadRun(pick.run_id);
   render();
+  heroCamera();
   await loadSplat();
   requestAnimationFrame(tick);
   if (state.steps.length) await goTo(0);
