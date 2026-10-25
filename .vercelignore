@@ -1,0 +1,16 @@
+# The hosted site is web/ only (vercel.json: outputDirectory "web"), so upload nothing else.
+# Allowlist: ignore every top-level entry, then let web/ and vercel.json back in.
+/*
+!/web
+!/vercel.json
+
+# Never upload these, wherever they sit: keys, local receipts, raw capture, training, envs, tests.
+**/.env
+**/.env.*
+**/runs/
+**/capture/
+**/training/
+**/.venv/
+**/tests/
+**/__pycache__/
+**/.DS_Store
