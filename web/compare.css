@@ -1,0 +1,72 @@
+/* Base vs fine-tuned local Gemma repair panel (compare.js). Owner: Claude (Gemma comparison). */
+
+.cmp-panel {
+  position: absolute;
+  top: 9.5rem;
+  left: 2rem;
+  width: 24rem;
+  max-height: calc(100% - 13rem);
+  overflow-y: auto;
+  background: rgba(22, 24, 28, .95);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-frame);
+  padding: 1rem 1.1rem 1.1rem;
+  font-size: .92rem;
+  z-index: 3;
+}
+.cmp-panel header { display: flex; justify-content: space-between; align-items: start; gap: .5rem; }
+.cmp-panel h3 { margin: 0; font-size: var(--step-1); font-weight: 700; color: var(--gold); line-height: 1.2; }
+.cmp-panel h4 { margin: 0 0 .3rem; font-size: 1rem; font-weight: 700; }
+.cmp-panel #cmp-close { border-color: transparent; color: var(--dim); padding: 0 .35rem; font-size: 1.3rem; line-height: 1; }
+.cmp-intro { color: var(--dim); margin: .35rem 0 .6rem; }
+
+.cmp-server { margin: 0 0 .7rem; font-size: .85rem; color: var(--dim); display: flex; align-items: center; gap: .45rem; }
+.cmp-server::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: var(--dim); }
+.cmp-server.up::before { background: var(--seated); }
+.cmp-server.down::before { background: var(--fault); }
+.cmp-server.down { color: var(--fault); }
+
+.cmp-controls { display: grid; gap: .5rem; margin-bottom: .8rem; }
+.cmp-controls label { display: grid; gap: .25rem; color: var(--dim); font-size: .85rem; }
+.cmp-controls select {
+  font: inherit; font-size: .88rem; color: var(--paper); background: var(--graphite-2);
+  border: 1px solid var(--line); border-radius: var(--radius-small); padding: .35rem .4rem;
+}
+
+.cmp-label { margin: .2rem 0 .35rem; font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); }
+.cmp-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
+.cmp-step { display: grid; grid-template-columns: 1.6rem 1fr; gap: .55rem; padding: .7rem; background: var(--graphite-2); border: 1px solid var(--line); border-radius: 8px; }
+.cmp-step p { margin: .2rem 0; }
+.cmp-n { width: 1.6rem; height: 1.6rem; border-radius: 50%; display: grid; place-items: center; background: #000; color: var(--dim); font-weight: 700; font-size: .8rem; }
+.cmp-sub { font-weight: 400; color: var(--dim); font-size: .8rem; margin-left: .25rem; }
+.cmp-patch { list-style: none; margin: 0 0 .3rem; padding: 0; font-variant-numeric: tabular-nums; }
+.cmp-patch .field { color: var(--dim); }
+.cmp-patch s { color: var(--dim); text-decoration-color: var(--fault); }
+.cmp-patch b { color: var(--gold); }
+.cmp-verdict { display: flex; gap: .5rem; align-items: baseline; }
+.cmp-chip { display: inline-block; flex: none; padding: .05rem .45rem; border-radius: 4px; font-size: .75rem; font-weight: 700; letter-spacing: .06em; color: #000; }
+.cmp-chip.pass { background: var(--seated); }
+.cmp-chip.fail { background: var(--fault); }
+.cmp-chip.err { background: var(--dim); }
+.cmp-time { color: var(--dim); font-size: .82rem; }
+.cmp-muted { color: var(--dim); }
+.cmp-error { color: var(--fault); margin: .3rem 0; }
+.cmp-raw { white-space: pre-wrap; word-break: break-all; font-size: .78rem; color: var(--dim); background: #000; padding: .4rem; border-radius: 4px; margin: .3rem 0; }
+.cmp-replay { margin-top: .35rem; padding: .25rem .6rem; font-size: .82rem; }
+
+.cmp-prov, .cmp-about { margin-top: .6rem; color: var(--dim); font-size: .82rem; }
+.cmp-prov summary, .cmp-about summary { cursor: pointer; }
+.cmp-prov ul, .cmp-about ul { margin: .35rem 0 0; padding-left: 1.1rem; display: grid; gap: .2rem; }
+.cmp-panel code { font-size: .78rem; color: var(--paper); }
+
+.cmp-recorded { margin-top: .9rem; padding-top: .7rem; border-top: 1px solid var(--line); }
+.cmp-recorded table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .85rem; }
+.cmp-recorded th, .cmp-recorded td { text-align: left; padding: .25rem .3rem; border-bottom: 1px solid var(--line); }
+.cmp-recorded thead th { color: var(--dim); font-weight: 400; font-size: .75rem; }
+.cmp-recorded .cmp-muted { font-size: .8rem; margin: .4rem 0 0; }
+
+#cmp-toggle[aria-expanded="true"] { border-color: var(--gold); color: var(--gold); }
+
+@media (max-width: 760px) {
+  .cmp-panel { left: .75rem; right: .75rem; width: auto; top: 8rem; max-height: calc(100% - 9rem); }
+}
