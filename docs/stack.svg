@@ -24,14 +24,14 @@
       <text x="32" y="44" fill="#9a968c">10.4 s, 0.5x ultra wide, 1080p60</text>
     </g>
     <g transform="translate(546,128)">
-      <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#e3b341"/>
+      <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
       <text x="32" y="25" font-weight="700" fill="#edeae2">COLMAP on a Colab T4</text>
       <text x="32" y="44" fill="#9a968c">52 views registered</text>
     </g>
     <g transform="translate(852,128)">
-      <rect width="300" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#e3b341"/>
+      <rect width="300" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
       <text x="32" y="25" font-weight="700" fill="#edeae2">gsplat Gaussian splat</text>
-      <text x="32" y="44" fill="#9a968c">not exported yet, plain table for now</text>
+      <text x="32" y="44" fill="#9a968c">trained, cropped: 17,157 Gaussians</text>
     </g>
 
     <!-- 2 Reasoning -->
@@ -41,7 +41,7 @@
     <g transform="translate(240,228)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
       <text x="32" y="25" font-weight="700" fill="#e3b341">gemini-4-argon</text>
-      <text x="32" y="44" fill="#9a968c">Interactions API, direct call verified</text>
+      <text x="32" y="44" fill="#9a968c">live critique verified, 2 repairs</text>
     </g>
     <g transform="translate(546,228)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#e3b341"/>
@@ -61,7 +61,7 @@
     <g transform="translate(240,328)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
       <text x="32" y="25" font-weight="700" fill="#edeae2">MuJoCo 3.17</text>
-      <text x="32" y="44" fill="#9a968c">handwritten plan passes, weld assist</text>
+      <text x="32" y="44" fill="#9a968c">Argon patch passes, weld assist</text>
     </g>
     <g transform="translate(546,328)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
@@ -70,8 +70,8 @@
     </g>
     <g transform="translate(852,328)">
       <rect width="300" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
-      <text x="32" y="25" font-weight="700" fill="#edeae2">pytest: 3 physics tests pass</text>
-      <text x="32" y="44" fill="#9a968c">repeatable, must fail, reaches target</text>
+      <text x="32" y="25" font-weight="700" fill="#edeae2">pytest: 12 tests pass</text>
+      <text x="32" y="44" fill="#9a968c">physics and live controls</text>
     </g>
 
     <!-- 4 Contracts -->
@@ -80,8 +80,8 @@
     <text x="52" y="470" fill="#9a968c">who decides what</text>
     <g transform="translate(240,428)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
-      <text x="32" y="25" font-weight="700" fill="#edeae2">Pydantic schemas 1.0.0</text>
-      <text x="32" y="44" fill="#9a968c">frozen interfaces for sim and Argon</text>
+      <text x="32" y="25" font-weight="700" fill="#edeae2">Pydantic schemas 1.0.1</text>
+      <text x="32" y="44" fill="#9a968c">finite numbers only, frozen</text>
     </g>
     <g transform="translate(546,428)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
@@ -89,9 +89,9 @@
       <text x="32" y="44" fill="#9a968c">measured metrics, fixed thresholds</text>
     </g>
     <g transform="translate(852,428)">
-      <rect width="300" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#e3b341"/>
+      <rect width="300" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
       <text x="32" y="25" font-weight="700" fill="#edeae2">loop.py</text>
-      <text x="32" y="44" fill="#9a968c">tested with stubs, live run next</text>
+      <text x="32" y="44" fill="#9a968c">live repair verified in the viewer</text>
     </g>
 
     <!-- 5 Show -->
@@ -109,9 +109,9 @@
       <text x="32" y="44" fill="#9a968c">real ALOHA meshes, 12 STL files</text>
     </g>
     <g transform="translate(852,528)">
-      <rect width="300" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#e3b341"/>
-      <text x="32" y="25" font-weight="700" fill="#edeae2">Gold scan / Photoreal toggle</text>
-      <text x="32" y="44" fill="#9a968c">gaussian-splats-3d 0.4.7, needs the splat</text>
+      <rect width="300" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
+      <text x="32" y="25" font-weight="700" fill="#edeae2">Gold / Solid / Photoreal</text>
+      <text x="32" y="44" fill="#9a968c">trained desk splat, all 3 modes</text>
     </g>
 
     <!-- 6 Host and secrets -->
