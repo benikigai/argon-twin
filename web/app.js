@@ -738,7 +738,9 @@ async function showRollout(a, autoplay) {
       const boxesOnly = log.bodies.every((b) => b.geoms.every((g) => g.type !== "mesh"));
       setCaption(boxesOnly ? "Arms drawn as simple boxes here; the camera frames show the real ALOHA meshes." : "");
     } catch (err) {
-      setCaption(`This attempt's motion log isn't available (${err.message})`);
+      state.pendingVerdict = null;
+      $("verdict").hidden = true;
+      setCaption(`This attempt's motion log isn't available (${err.message}). Select the attempt to retry.`);
       return;
     }
   }
