@@ -6,7 +6,7 @@ Film a table with your phone. ArgonTwin turns it into a physics twin, two ALOHA 
 
 Built at the [Gemini 4 Argon SF Hackathon](https://cerebralvalley.ai/events/~/e/gemini-4-argon-sf), Google DeepMind × Cerebral Valley, Oct 25, 2026. Problem Statement Two, *More Dimensions*: render what it made, watch the result, critique it against the goal, fix it in a loop. Everything in this repo was written during the event.
 
-**Hosted page: [argon-twin.vercel.app](https://argon-twin.vercel.app)** is a labeled target preview, not the live app. Live runs need the local server (see [Run it](#run-it)).
+**[Try the verified Celsius replay](https://argon-twin.vercel.app)**: watch the screen collision, read Argon's repair, and replay the passing hand-over. The public demo is a recorded run; new model calls and physics runs need the local server (see [Run it](#run-it)).
 
 ![Screenshot of the local viewer in Photoreal mode: the Gaussian splat of Ben's desk with two simulated ALOHA arms, the Celsius can splat riding on the simulated can, a MuJoCo Pass verdict (can placed 0.5 cm from target, 0.0 N obstacle contact), two wrist camera views, and the attempt strip: attempt 1 failed, Argon explains and fixes, attempt 2 passed.](docs/proof-celsius-photoreal.png)
 
@@ -56,7 +56,7 @@ What doesn't carry over yet: the hand-over controller is scripted for ALOHA, gra
 
 ## The loop
 
-![The loop: a 10 second phone video goes to Gemini 4 Argon, which builds the scene. Two ALOHA arms run the handover in MuJoCo. Argon watches keyframes and metrics, explains the failure, and patches the plan. Only MuJoCo's judge decides pass or fail. Passing runs are saved for the live viewer and, later, a recorded replay on Vercel.](docs/loop.svg)
+![The loop: a 10 second phone video goes to Gemini 4 Argon, which builds the scene. Two ALOHA arms run the handover in MuJoCo. Argon watches keyframes and metrics, explains the failure, and patches the plan. Only MuJoCo's judge decides pass or fail. Passing runs are saved for the live viewer and a recorded replay on Vercel.](docs/loop.svg)
 
 - **Pass or fail is never the model's call.** `schemas.judge` checks measured MuJoCo numbers against fixed thresholds in `config.py`. The hand-over has to complete, the can can't drop, it has to land within 3 cm of the target and sit still, no arm can press into the table, and no arm or can may touch or pass through the screens and laptop. Argon can suggest extra checks. They show up on screen. They never change the verdict.
 - **No answers in Argon's input.** The critique gets the scene's geometry on purpose, but no known good plan values, and live runs start from scenes whose own hand-over point is out of reach.
@@ -136,7 +136,7 @@ Invalid output, timeouts and an unavailable model server are shown as such; no o
 
 ## The stack
 
-![The stack, by layer. Capture: iPhone video, COLMAP with 52 views, a Gaussian splat trained on a Colab T4 and cropped to the table. Reasoning: gemini-4-argon live critique, antigravity-preview-09-2026 managed agent, Gemma 4 E4B local repair model. Physics: MuJoCo 3.17 with fitted collision boxes, two ALOHA arms with mink 1.3. Contracts: Pydantic schemas 1.0.3, deterministic judge. Show: FastAPI and uvicorn, Three.js viewer with real ALOHA meshes, Gold, Solid and Photoreal views. Host: Vercel target preview, recorded replay planned.](docs/stack.svg)
+![The stack, by layer. Capture: iPhone video, COLMAP with 52 views, a Gaussian splat trained on a Colab T4 and cropped to the table. Reasoning: gemini-4-argon live critique, antigravity-preview-09-2026 managed agent, Gemma 4 E4B local repair model. Physics: MuJoCo 3.17 with fitted collision boxes, two ALOHA arms with mink 1.3. Contracts: Pydantic schemas 1.0.3, deterministic judge. Show: FastAPI and uvicorn, Three.js viewer with real ALOHA meshes, Gold, Solid and Photoreal views. Host: verified recorded Celsius replay on Vercel.](docs/stack.svg)
 
 | Layer | What runs it | Why this one |
 |---|---|---|
@@ -186,7 +186,7 @@ Every claim here has a receipt.
 | Managed agent (`managed_agent.py`) | One verified sweep with proof-of-execution checks and a local MuJoCo re-check, on the earlier scene without screens |
 | Gemma 4 repair model (`gemma_local.py`, `compare.py`) | Fine-tuned 11/12 vs base 4/12 in recorded local validation; live base vs fine-tuned comparison in the viewer |
 | Desk splat | Trained on a Colab T4, 17,157 Gaussians after the crop, aligned to the sim table by fitting the keyboard plane and table rim. Soft, with some floaters |
-| Hosted page | [argon-twin.vercel.app](https://argon-twin.vercel.app) is a target preview. Recorded replay isn't hosted yet |
+| Hosted replay | [argon-twin.vercel.app](https://argon-twin.vercel.app) serves the verified Celsius collision repair, labeled with its recording time. Gold, Solid, Photoreal and the attempt/critique rail are interactive; model calls and MuJoCo stay local |
 
 ## What's not working yet
 

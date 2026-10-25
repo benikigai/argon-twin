@@ -231,8 +231,8 @@ def run_loop(*, video_path: Path | None, scene_path: Path | None = None,
 ### Hosting
 
 - **Live backend:** `uvicorn server:app --port 8000` on a local machine (`http://127.0.0.1:8000`). Live runs start here; MuJoCo and Argon calls only ever run here.
-- **Vercel now:** `https://argon-twin.vercel.app` serves a labeled TARGET PREVIEW concept page, deployed separately from an isolated static folder. It is not the live app.
-- **Vercel later (`web/` only):** a public viewer that plays recorded runs, labeled `REPLAY (recorded <time>)` on screen. It never calls Gemini or runs MuJoCo, and holds no secrets.
+- **Vercel now:** `https://argon-twin.vercel.app` serves the verified Celsius replay from `web/`, labeled with its recording time. The recorded failure, Argon critique and passing attempt are interactive.
+- **Hosted boundary (`web/` only):** the public viewer never calls Gemini or runs MuJoCo and holds no secrets. New live runs and Gemma comparisons require the local server.
 - `export_replay.py <run_id>` (integrator) copies a finished run's manifest, keyframes and rollout into `web/replay/<run_id>/` and updates `web/replay/index.json`. The viewer uses `/api/runs` when the local server answers and falls back to `web/replay/` otherwise.
 
 ### Managed-agent sweep verification

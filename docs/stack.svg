@@ -120,12 +120,12 @@
     <text x="52" y="670" fill="#9a968c">public and private</text>
     <g transform="translate(240,628)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="#7fd1a8"/>
-      <text x="32" y="25" font-weight="700" fill="#edeae2">Vercel target preview</text>
+      <text x="32" y="25" font-weight="700" fill="#edeae2">Vercel public replay</text>
       <text x="32" y="44" fill="#9a968c">argon-twin.vercel.app, concept only</text>
     </g>
     <g transform="translate(546,628)">
       <rect width="290" height="56" rx="8" fill="#1d2025"/><circle cx="18" cy="20" r="6" fill="none" stroke="#9a968c" stroke-width="2"/>
-      <text x="32" y="25" font-weight="700" fill="#edeae2">Vercel recorded replay</text>
+      <text x="32" y="25" font-weight="700" fill="#edeae2">Celsius recorded replay</text>
       <text x="32" y="44" fill="#9a968c">export_replay.py, after the loop runs</text>
     </g>
     <g transform="translate(852,628)">

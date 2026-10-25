@@ -342,7 +342,7 @@ function renderCritique(a) {
   ].filter(Boolean).join(", ");
   const steps = c.body.diagnosis;
   subs.hidden = false;
-  subs.innerHTML = `<div class="speaker">Gemini 4 Argon, live call</div>
+  subs.innerHTML = `<div class="speaker">Gemini 4 Argon, ${state.run?.summary?.source === "REPLAY" ? "recorded call" : "live call"}</div>
     <p class="lead">${richText(steps[0])}</p>
     <details class="more">
       <summary>Read the full critique (${steps.length} steps)</summary>
@@ -592,7 +592,7 @@ function attachObjectAppearances() {
 async function loadObjectSplat(url) {
   const GS = await import("@mkkellogg/gaussian-splats-3d");
   const viewer = new GS.DropInViewer({ dynamicScene: true, gpuAcceleratedSort: false, sharedMemoryForWorkers: false });
-  await viewer.addSplatScenes([{ path: url, showLoadingUI: false }]);
+  await viewer.addSplatScenes([{ path: url }], false);
   return viewer;
 }
 
@@ -863,7 +863,7 @@ async function ensurePhotoViewer() {
   if (photoViewer) return photoViewer;
   const GS = await import("@mkkellogg/gaussian-splats-3d");
   const viewer = new GS.DropInViewer({ gpuAcceleratedSort: false, sharedMemoryForWorkers: false });
-  await viewer.addSplatScenes([{ path: scanUrl, showLoadingUI: false }]);
+  await viewer.addSplatScenes([{ path: scanUrl }], false);
   applyAlign(viewer);
   splatLayer.add(viewer);
   photoViewer = viewer;
@@ -1260,6 +1260,7 @@ async function main() {
     document.querySelector(".masthead h1").after(tag);
   }
   state.source = await detectSource();
+  if (state.source === "api") import("./compare.js").catch(() => {});
   let runs = [];
   try { runs = await listRuns(); } catch { /* no runs yet */ }
   const requested = new URLSearchParams(location.search).get("run");  // ?run=<id> picks a specific run
@@ -1312,5 +1313,4 @@ window.argonTwin = {
 
 main();
 
-// Add-on panel: loads only if web/compare.js exists; it brings its own stylesheet.
-import("./compare.js").catch(() => {});
+// The local comparison panel is loaded above only when the API is available.
