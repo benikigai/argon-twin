@@ -4,20 +4,53 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ArgonTwin</title>
-  <style>
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-           background: #0b0b0d; color: #e8e2d0; font: 16px/1.5 system-ui, sans-serif; }
-    main { max-width: 36rem; padding: 2rem; }
-    h1 { margin: 0 0 .25rem; color: #d4a843; font-size: 2.25rem; }
-    p { margin: .5rem 0; }
-    .muted { color: #8a8576; font-size: .9rem; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+        "@mkkellogg/gaussian-splats-3d": "https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.7/build/gaussian-splats-3d.module.js"
+      }
+    }
+  </script>
 </head>
 <body>
-  <main>
-    <h1>ArgonTwin</h1>
-    <p>Your desk, rehearsed by robots before hardware.</p>
-    <p class="muted">Being built at the Gemini 4 Argon SF Hackathon, Oct 25, 2026. The viewer goes here.</p>
+  <main class="stage" aria-label="Simulation stage">
+    <canvas id="stage"></canvas>
+
+    <header class="masthead">
+      <h1>ArgonTwin</h1>
+      <p>Two robot arms rehearse a hand-over on Ben's real desk. Argon watches, explains, and fixes the plan.</p>
+    </header>
+
+    <div class="status">
+      <span id="source" class="source">Connecting</span>
+      <button id="replay" type="button" disabled>Replay</button>
+      <button id="run" type="button" class="primary" hidden>Run the loop</button>
+    </div>
+
+    <section id="verdict" class="verdict" aria-live="polite" hidden></section>
+    <section id="subtitles" class="subtitles" aria-live="polite" hidden></section>
+    <aside id="evidence" class="evidence" hidden></aside>
+
+    <div class="stage-foot">
+      <span id="caption"></span>
+      <div id="scan-modes" class="scan-modes" role="group" aria-label="Desk scan" hidden>
+        <button type="button" data-mode="gold" aria-pressed="true">Gold scan</button>
+        <button type="button" data-mode="photo" aria-pressed="false">Photoreal</button>
+        <button type="button" data-mode="off" aria-pressed="false">Scan off</button>
+      </div>
+    </div>
   </main>
+
+  <nav class="rail" aria-label="The loop">
+    <ol id="steps"></ol>
+  </nav>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
