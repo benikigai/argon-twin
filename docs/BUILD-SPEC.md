@@ -81,7 +81,7 @@ server.py ── /api/runs, /api/runs/{id}, /api/runs/{id}/attempts/{n}/rollout 
 |---|---|---|
 | **Claude (integrator, design owner)** | `schemas.py`, `config.py`, `loop.py`, `server.py`, `export_replay.py`, `web/`, `examples/`, `README.md`, `docs/` | Owns the contracts and pass/fail thresholds |
 | **Antigravity / Argon** | `argon.py`, `managed_agent.py` | All Gemini and Google API calls. Reads the key only through `config.gemini_api_key()` |
-| **Codex** | `sim.py`, `tests/` (physics and contract verification), `capture/` | Splat pipeline for `capture/IMG_1272.MOV` on Colab; MuJoCo + `mink` scripted hand-over |
+| **Codex** | `sim.py`, `tests/` (physics and contract verification), `capture/`, `training/` | Splat pipeline for `capture/IMG_1272.MOV` on Colab; MuJoCo + `mink` scripted hand-over; Gemma 4 pilot (Ben requested; one extra T4 session up to 30 minutes approved) |
 
 Rules:
 - Nobody edits another owner's file. If you need a change there, ask its owner.
@@ -216,7 +216,7 @@ Cut order if behind: slice 5, then the splat (fall back to a plain 3D desk in Th
 
 ## 10. Non-goals and fallbacks
 
-- No model training or distillation, no yield statistics, no multi-page app.
+- No yield statistics, no multi-page app. The only training is the Gemma 4 pilot in `training/`, reported with measured MuJoCo pass counts on held-out cases.
 - No real-robot control.
 - The LLM never grades itself; MuJoCo decides pass/fail.
 - Fallbacks: Colab splat fails → phone app capture (Scaniverse/Polycam) → plain Three.js desk. Argon video input fails → Argon reads 3–5 extracted frames instead. Managed agent slow → skip slice 5.
