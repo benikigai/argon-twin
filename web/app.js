@@ -45,6 +45,7 @@ const state = {
   base: "",
   steps: [],         // [{ kind: "attempt" | "critique", attempt }]
   current: 0,
+  speed: 1,             // rollout playback speed (the guided tour plays attempts faster)
   splatStyle: "gold",  // view mode: "gold" | "solid" | "photo"
   rollout: null,
   rolloutKey: null,
@@ -430,7 +431,7 @@ function renderAttemptEvidence(a) {
     <figcaption>${escapeHtml(k.camera.replace("_", " "))} camera, ${escapeHtml(frameName(k))}</figcaption></figure>`).join("");
 }
 
-async function goTo(i) {
+async function goTo(i, autoplay = true) {
   if (!state.steps.length) return;
   state.current = Math.max(0, Math.min(i, state.steps.length - 1));
   const step = state.steps[state.current];
@@ -439,9 +440,10 @@ async function goTo(i) {
     renderCritique(null);
     renderAttemptEvidence(step.attempt);
     renderMarkers(step.attempt);
-    holdVerdict(step.attempt);
-    await showRollout(step.attempt, true);
-    if (!state.playing) releaseVerdict();
+    if (autoplay) holdVerdict(step.attempt);
+    else { state.pendingVerdict = null; $("verdict").hidden = true; }
+    await showRollout(step.attempt, autoplay);
+    if (autoplay && !state.playing) releaseVerdict();
   } else if (step.kind === "critique") {
     $("verdict").hidden = true;
     state.pendingVerdict = null;
@@ -1302,7 +1304,7 @@ async function startRun() {
 
 function tick(now) {
   if (state.playing && state.rollout) {
-    const step = 1000 / state.rollout.fps;
+    const step = 1000 / state.rollout.fps / state.speed;  // speed > 1 only during the guided tour
     while (now - state.lastTick >= step) {
       state.lastTick += step;
       state.frame += 1;
@@ -1389,6 +1391,14 @@ window.argonTwin = {
   },
 };
 
-main();
+const ready = main();
+
+// Guided tour (tour.js): a scripted walk through the recorded Celsius run. It drives the
+// viewer only through these hooks, so every live control keeps working as before.
+import("./tour.js?v=2").then((m) => m.setup({
+  ready, state, camera, controls, heroCamera, goTo, loadRun, render, renderPhases, renderMarkers, setScanMode, setCloseup,
+  setColliders(on) { state.showColliders = on; applyColliders(); },
+  splatReady: () => splatBuffer !== null,
+})).catch((err) => console.warn("Tour unavailable:", err));
 
 // The local comparison panel is loaded above only when the API is available.

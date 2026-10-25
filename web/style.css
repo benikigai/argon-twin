@@ -486,3 +486,47 @@ button.quiet:hover { color: var(--paper); border-color: transparent; }
 
 .masthead h1 a { color: inherit; text-decoration: none; }
 .masthead h1 a:hover, .masthead h1 a:focus-visible { text-decoration: underline; text-underline-offset: 4px; }
+
+/* --- Guided tour (tour.js) --------------------------------------------------------- */
+
+#tour[aria-pressed="true"] { border-color: var(--gold); color: var(--gold); }
+body.touring .stage-foot,
+body.touring .rail,
+body.touring #phases,
+body.touring #planner { visibility: hidden; }
+.tour-band {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  min-height: 7.5rem;
+  padding: 1.1rem 2.5rem 1.3rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, .96) 70%, rgba(0, 0, 0, .7));
+  border-top: 1px solid var(--line);
+  pointer-events: none;
+}
+.tour-caption {
+  margin: 0;
+  max-width: 64rem;
+  font-size: clamp(1.4rem, 2.2vw, 2.6rem);
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--paper);
+}
+.tour-note { display: block; margin-top: .35rem; font-size: .62em; font-weight: 600; color: var(--gold); }
+.tour-badge {
+  margin: 0;
+  flex-shrink: 0;
+  text-align: right;
+  font-size: clamp(.8rem, 1vw, 1.05rem);
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+/* ?tour=1&capture=1: a fixed 1920x1080 frame with no cursor and no tour chrome. */
+html.tour-recording, html.tour-recording body { width: 1920px; height: 1080px; cursor: none; }
+html.tour-recording * { cursor: none !important; }
+html.tour-recording .status { visibility: hidden; }
