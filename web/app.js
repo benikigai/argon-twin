@@ -324,16 +324,35 @@ function richText(text) {
   return escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
+function readableDiagnosis(text) {
+  const names = {
+    ...Object.fromEntries(Object.entries(PATCH_NAMES).map(([key, [label]]) => [key, label.toLowerCase()])),
+    upper_screen: "upper screen", lower_screen: "lower screen",
+    max_arm_obstacle_contact_force_n: "peak arm contact force",
+    max_object_obstacle_penetration_m: "can penetration",
+    can_min_z_m: "lowest point of the can", left_grasped: "left arm grasped the can",
+    right_grasped: "right arm grasped the can",
+  };
+  return richText(text.replace(/\s*\([^)]*\)/g, "").replace(/\b[a-z]+(?:_[a-z]+)+\b/g, (word) => names[word] ?? word));
+}
+
 function renderCritique(a) {
   const subs = $("subtitles");
   const ev = $("evidence");
   if (!a?.critique) { subs.hidden = true; ev.hidden = true; return; }
+  const sameReview = subs.dataset.attempt === `${state.runId}/${a.attempt}`;
+  const scrollTop = sameReview ? subs.scrollTop : 0;
+  const moreOpen = sameReview && subs.querySelector("details.more")?.open;
+  subs.dataset.attempt = `${state.runId}/${a.attempt}`;
   const c = a.critique;
   const changes = Object.entries(c.body.patch)
-    .filter(([, v]) => v !== null)
+    .filter(([, v]) => v != null)
     .map(([k, v]) => {
       const [name, fmt] = PATCH_NAMES[k] ?? [k, String];
-      return `<span>${escapeHtml(name)} <b>${escapeHtml(fmt(v))}</b></span>`;
+      const format = (value) => k === "handover_point_m"
+        ? value.map((n, i) => `${["x", "y", "z"][i]} ${(n * 100).toFixed(0)}`).join(", ") + " cm"
+        : fmt(value);
+      return `<tr><th scope="row">${escapeHtml(name)}</th><td>${escapeHtml(format(a.plan[k]))}</td><td>${escapeHtml(format(v))}</td></tr>`;
     });
   const u = c.usage;
   const receipt = [
@@ -342,23 +361,58 @@ function renderCritique(a) {
     u.thought_tokens != null ? `${u.thought_tokens.toLocaleString()} thinking` : "thinking tokens not reported",
     `${u.wall_time_s.toFixed(1)} s`,
   ].filter(Boolean).join(", ");
+  const m = a.sim.metrics;
+  const limits = a.verdict.thresholds;
+  const measurements = [
+    ["handover_completed", "Handover", m.handover_completed ? "Completed" : "Not completed", "Must complete"],
+    ["dropped", "Lowest point of can", `${(m.can_min_z_m * 100).toFixed(1)} cm`, `At least -${(limits.drop_margin_m * 100).toFixed(0)} cm`],
+    ["off target", "Distance from target", `${(m.can_final_xy_error_m * 100).toFixed(1)} cm`, `At most ${(limits.can_target_tolerance_m * 100).toFixed(0)} cm`],
+    ["not at rest", "Final can speed", `${(m.can_final_speed_m_s * 100).toFixed(1)} cm/s`, `At most ${(limits.max_can_speed_at_end_m_s * 100).toFixed(0)} cm/s`],
+    ["arm hit table", "Arm / table contact", `${m.max_arm_table_contact_force_n.toFixed(1)} N`, `At most ${limits.max_arm_table_contact_force_n} N`],
+    ["arm hit obstacle", "Arm / obstacle contact", `${m.max_arm_obstacle_contact_force_n?.toFixed(1)} N`, `At most ${limits.max_arm_obstacle_contact_force_n} N`],
+    ["arm inside obstacle", "Arm inside obstacle", `${(m.max_arm_obstacle_penetration_m * 1000).toFixed(1)} mm`, `At most ${limits.max_arm_obstacle_penetration_m * 1000} mm`],
+    ["object inside obstacle", "Can inside obstacle", `${(m.max_object_obstacle_penetration_m * 1000).toFixed(1)} mm`, `At most ${limits.max_object_obstacle_penetration_m * 1000} mm`],
+  ].filter(([prefix]) => a.verdict.failed_checks.some((check) => check.startsWith(prefix)));
+  const priorities = ["arm hit obstacle", "object inside obstacle", "arm hit table", "arm inside obstacle", "handover_completed", "dropped", "off target", "not at rest"];
+  measurements.sort((a, b) => priorities.indexOf(a[0]) - priorities.indexOf(b[0]));
+  const measurementRows = (rows) => rows.map(([, name, value, limit]) => `<tr><th scope="row">${escapeHtml(name)}</th><td>${escapeHtml(value)}</td><td>${escapeHtml(limit)}</td></tr>`).join("");
   const steps = c.body.diagnosis;
+  const frames = a.sim.keyframes;
+  const cameras = new Set(frames.map((k) => k.camera)).size;
+  const nextIndex = state.steps.findIndex((s) => s.kind === "attempt" && s.attempt.attempt === a.attempt + 1);
+  const next = nextIndex >= 0 ? state.steps[nextIndex].attempt : null;
+  const status = next ? `Attempt ${next.attempt}: ${next.verdict.passed ? "PASS" : "FAIL"}, measured by MuJoCo`
+    : state.run?.summary?.state === "running" ? "The next simulation is running. This review will stay open."
+    : "No next simulation is recorded.";
   subs.hidden = false;
-  subs.innerHTML = `<div class="speaker">Gemini 4 Argon, ${state.run?.summary?.source === "REPLAY" ? "recorded call" : "live call"}</div>
-    <p class="lead">${richText(steps[0])}</p>
-    <details class="more">
-      <summary>Read the full critique (${steps.length} steps)</summary>
+  subs.innerHTML = `<div class="speaker">Gemini 4 Argon reviews attempt ${a.attempt}</div>
+    <p class="review-input">${frames.length} rendered frames from ${cameras} cameras + scene geometry, executed plan, measurements and failed checks</p>
+    <section class="review-section"><h2>1. Why MuJoCo failed it</h2>
+      <div class="review-table-wrap"><table class="review-table"><thead><tr><th>Failed check</th><th>Measured</th><th>Required</th></tr></thead>
+      <tbody>${measurementRows(measurements.slice(0, 3))}</tbody></table></div>
+      ${measurements.length > 3 ? `<p class="review-note">${measurements.length} failed checks in total. All measurements below.</p>` : ""}</section>
+    <section class="review-section"><h2>2. Argon's explanation</h2>
+      <ol class="review-diagnosis">${steps.map((d) => `<li>${readableDiagnosis(d)}</li>`).join("")}</ol></section>
+    <section class="review-section"><h2>3. Proposed changes</h2>
+      <div class="review-table-wrap"><table class="review-table"><thead><tr><th>Plan parameter</th><th>Failed attempt</th><th>Proposed retry</th></tr></thead><tbody>${changes.join("")}</tbody></table></div>
+      <p class="review-note">Positions are relative to the tabletop center: x across the arms, y away from the front camera, z up. Only listed values change.</p></section>
+    <div class="review-next"><p>${escapeHtml(status)}</p><button type="button" id="review-next" ${next ? "" : "disabled"}>${next ? `Watch attempt ${next.attempt}` : "Waiting for retry"}</button></div>
+    <details class="more" ${moreOpen ? "open" : ""}><summary>Full evidence, original response and call receipt</summary>
+      <table class="review-table"><thead><tr><th>All failed checks</th><th>Measured</th><th>Required</th></tr></thead><tbody>${measurementRows(measurements)}</tbody></table>
       <ol>${steps.map((d) => `<li>${richText(d)}</li>`).join("")}</ol>
-      <p class="receipt">${escapeHtml(receipt)}. Response ${escapeHtml(c.interaction.interaction_id)}</p>
-    </details>
-    <div class="change">${changes.join("")}</div>`;
+      <div class="review-frames">${c.body.cited_keyframes.map((label) => frames.find((k) => k.label === label)).filter(Boolean).map((k) => `<a href="${keyframeURL(a, k)}" target="_blank" rel="noopener"><img src="${keyframeURL(a, k)}" alt="${escapeHtml(k.label)}"><span>${escapeHtml(frameName(k))}, ${escapeHtml(k.camera.replace(/_/g, " "))}, ${k.t_s.toFixed(1)} s</span></a>`).join("")}</div>
+      <p class="receipt">${state.run?.summary?.source === "REPLAY" ? "Recorded call" : "Call receipt"}: ${escapeHtml(receipt)}. Response ${escapeHtml(c.interaction.interaction_id)}</p>
+    </details>`;
+  $("review-next").onclick = () => { if (nextIndex >= 0) goTo(nextIndex); };
+  subs.scrollTop = scrollTop;
+  positionOverlays();
 
   const cited = c.body.cited_keyframes
     .map((label) => a.sim.keyframes.find((k) => k.label === label))
     .filter(Boolean)
     .slice(0, 2);
   ev.hidden = !cited.length || !$("planner").hidden;
-  ev.innerHTML = cited.map((k) => `<figure><img alt="${escapeHtml(k.label)} frame from the ${escapeHtml(k.camera)} camera" src="${keyframeURL(a, k)}">
+  ev.innerHTML = `<div class="review-evidence-title">Frames Argon cited</div>` + cited.map((k) => `<figure><img alt="${escapeHtml(k.label)} frame from the ${escapeHtml(k.camera)} camera" src="${keyframeURL(a, k)}">
     <figcaption>Argon cited: ${escapeHtml(frameName(k))}, ${escapeHtml(k.camera.replace("_", " "))} camera, ${k.t_s.toFixed(1)} s</figcaption></figure>`).join("");
 }
 
@@ -942,7 +996,13 @@ async function pollLive() {
     render();
     renderPhases();
     const now = state.steps.filter((s) => s.kind !== "pending").length;
-    if (now !== before) goTo(now - 1);
+    if (state.steps[state.current]?.kind === "critique") {
+      // Keep the explanation readable while its retry finishes in the background.
+      if (now !== before) renderCritique(state.steps[state.current].attempt);
+    } else if (now !== before) {
+      const review = state.steps.findIndex((s, i) => i >= before && s.kind === "critique");
+      goTo(review >= 0 ? review : now - 1);
+    }
   }
   render();
   renderPhases();
@@ -1066,8 +1126,13 @@ function positionOverlays() {
   const bottom = `${Math.ceil(stage.bottom - foot.top) + 12}px`;
   $("verdict").style.bottom = bottom;
   $("subtitles").style.bottom = bottom;
+  const headerBottom = Math.max(...[".masthead", ".status"].map((selector) =>
+    document.querySelector(selector).getBoundingClientRect().bottom));
+  $("subtitles").style.maxHeight = `${Math.max(100, foot.top - headerBottom - 24)}px`;
 }
 new ResizeObserver(() => positionOverlays()).observe(document.querySelector(".stage-foot"));
+new ResizeObserver(() => positionOverlays()).observe(document.querySelector(".status"));
+new ResizeObserver(() => positionOverlays()).observe(document.querySelector(".masthead"));
 
 function positionPhases() {
   const list = $("phases");

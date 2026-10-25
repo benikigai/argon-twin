@@ -12,3 +12,5 @@ capture/*.mp4
 capture/frames/
 capture/colmap/
 .claude/
+.vercel
+.env*

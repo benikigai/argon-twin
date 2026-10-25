@@ -132,19 +132,41 @@ button.quiet:hover { color: var(--paper); border-color: transparent; }
   font-size: .9rem;
 }
 
-/* Argon's critique: a compact card where the verdict sits; full text expands in place. */
+/* Keep measured failures, the model's explanation, and its proposed retry distinct. */
 .subtitles {
   position: absolute;
   left: 2rem;
   bottom: 5.5rem;
-  width: min(36rem, calc(100% - 22rem));
-  background: rgba(0, 0, 0, .78);
+  width: min(47rem, calc(100% - 22rem));
+  max-height: calc(100% - 10rem);
+  overflow-y: auto;
+  background: #08090a;
   border: 1px solid var(--line);
   border-left: 3px solid var(--gold);
   border-radius: var(--radius-frame);
   padding: .8rem 1rem;
 }
 .subtitles .speaker { color: var(--gold); font-weight: 700; font-stretch: 110%; margin-bottom: .3rem; }
+.review-input { color: var(--dim); margin: 0; font-size: .9rem; }
+.review-section { margin-top: .9rem; }
+.review-section h2 { font-size: 1.05rem; margin: 0 0 .4rem; }
+.review-table-wrap { overflow-x: auto; }
+.review-table { width: 100%; border-collapse: collapse; font-size: .9rem; text-align: left; }
+.review-table th, .review-table td { padding: .3rem .45rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.review-table thead th { color: var(--dim); font-weight: 400; }
+.review-table tbody th { font-weight: 500; }
+.review-section:first-of-type .review-table tbody td:nth-child(2) { color: #ff8b79; }
+.review-section:nth-of-type(3) .review-table tbody td:last-child { color: var(--gold); font-weight: 600; }
+.review-diagnosis { margin: 0; padding-left: 1.3rem; font-size: .98rem; }
+.review-diagnosis li + li { margin-top: .45rem; }
+.review-note { color: var(--dim); font-size: .8rem; margin: .4rem 0 0; }
+.review-next { margin: .8rem 0 .5rem; padding-top: .6rem; border-top: 1px solid var(--line); display: flex; gap: .7rem; align-items: center; justify-content: space-between; }
+.review-next p { margin: 0; font-size: .9rem; }
+.review-next button { flex-shrink: 0; color: var(--gold); }
+.review-frames { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .5rem; }
+.review-frames a { color: var(--dim); font-size: .8rem; text-decoration: none; }
+.review-frames img { display: block; width: 100%; }
+.review-evidence-title { color: var(--gold); font-weight: 600; font-size: .9rem; }
 .subtitles .lead {
   margin: 0;
   font-size: var(--step-1);
