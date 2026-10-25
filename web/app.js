@@ -3,7 +3,7 @@
 // (e.g. on Vercel) the viewer plays recorded runs from replay/ and says so.
 //
 // Keys: ← → step through the loop, space replays, T cycles the view (gold, solid, photoreal when ready),
-// H returns to the front hero camera, C toggles the gripper close-up.
+// H returns to the front hero camera, C toggles the gripper close-up, O shows collision surfaces.
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -12,15 +12,31 @@ import { STLLoader } from "three/addons/loaders/STLLoader.js";
 const $ = (id) => document.getElementById(id);
 const GOLD = new THREE.Color("#e3b341");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-// Live runs start from this example's scene and plan, plus whatever the plan editor changed
-// (sent as initial_patch). The example file itself is never written.
-// Its scene.handover_point_m is out of reach on purpose, so a passing handover point never
-// appears in what Argon's critique sees; the run itself uses the plan's handover point.
-const BASE_SCENE = "examples/desk_live_base.json";
-// "Break the plan" moves the handover point out of both arms' reach, so attempt 1 fails
-// for a visible, disclosed reason and the loop has something real to fix.
-const BREAK_HANDOVER = [1.2, 0.8, 0.6];
-const ARM_REACH_M = 0.7;  // rough ViperX reach from the arm base; used only for on-screen notes
+// Live runs start from the profile's example scene and plan, plus whatever the plan editor
+// changed (sent as initial_patch). Example files are never written.
+//
+// The default is the verified Celsius can collision repair (run 20261025-134505): the real can,
+// segmented from the scan, rides on the simulated can; the right arm picks it up and the left
+// places it. The demo example's plan puts the handover point inside the screens, so one click
+// on Run the loop (or Reset, then Apply and run) reproduces failure -> Argon repair -> pass.
+// Its own scene.handover_point_m is out of reach, so no passing point is in Argon's input.
+// The safe fixture examples/desk_celsius.json is left untouched.
+// ?variant=celsius is kept as an alias. Older runs, including the earlier collision proof
+// 20261025-133036, stay reachable with ?run=<id>.
+const CELSIUS = {
+  label: null,
+  base: "examples/desk_celsius_demo.json",
+  breakHandover: [0.0, 0.21, 0.3],      // inside the screens
+  pinnedRun: "20261025-134505",         // the recorded proof the viewer opens on
+  background: "desk-without-celsius.splat",
+};
+const PROFILES = { default: CELSIUS, celsius: CELSIUS };
+const VARIANT = new URLSearchParams(location.search).get("variant") === "celsius" ? "celsius" : "default";
+const PROFILE = PROFILES[VARIANT];
+const BASE_SCENE = PROFILE.base;
+const BREAK_HANDOVER = PROFILE.breakHandover;
+const PINNED_RUN = PROFILE.pinnedRun;
+const ARM_REACH_M = 0.75;  // ViperX 300 nominal reach (about 750 mm); used only for on-screen notes
 
 const state = {
   source: null,      // "api" | "replay"
@@ -40,6 +56,7 @@ const state = {
   baseScene: null,      // { scene, plan } from BASE_SCENE
   draft: null,          // { handover_point_m, lift_height_m } being edited
   closeup: false,
+  showColliders: false,
   renderStyle: "scan",  // "scan" (gold dots) | "solid" | "photo" (trained splat, when present)
 };
 
@@ -48,7 +65,9 @@ const scanMaterials = new Map();  // gold-scan point materials by role
 // --- Three.js stage -------------------------------------------------------------
 
 const canvas = $("stage");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+// ?capture=1 keeps the last WebGL frame readable so a screenshot of the page includes the scene.
+const CAPTURE = new URLSearchParams(location.search).get("capture") === "1";
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: CAPTURE });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setClearColor("#000000");
 
@@ -142,6 +161,7 @@ async function loadRun(runId) {
     state.run = { summary: { run_id: runId, source: "REPLAY", state: "done", created_at: manifest.created_at }, manifest, log: [] };
     state.base = `replay/${runId}/`;
   }
+  if (loadedScanUrl !== null) await useBackground(backgroundUrlFor(state.run));
 }
 
 function buildSteps() {
@@ -162,6 +182,9 @@ const PLAIN = {
   "off target": "The can missed the target",
   "not at rest": "The can was still moving at the end",
   "arm hit table": "An arm pressed into the table",
+  "arm hit obstacle": "An arm hit the laptop or a screen",
+  "arm inside obstacle": "An arm went inside the laptop or a screen",
+  "object inside obstacle": "The can went through the laptop or a screen",
 };
 
 function plainReason(check) {
@@ -254,23 +277,36 @@ function renderVerdict(a) {
   if (!a) { box.hidden = true; return; }
   box.hidden = false;
   box.className = `verdict ${a.verdict.passed ? "pass" : "fail"}`;
-  const flags = [];
-  if (a.sim.metrics.grasp_assist_used) flags.push("Grasp assist: the can is welded to the gripper once it closes");
-  if (a.mode === "ARGON_INVALID") flags.push("Argon's fix failed validation, so the plan was kept");
-  if (a.mode === "MANUAL") flags.push("Scene and starting plan written by hand");
-  if (a.mode === "LIVE_ARGON") flags.push("Plan patched by Gemini 4 Argon in a live call");
+  // Provenance: one short line, with the full sentences behind "Details".
+  const flags = [];  // [short, long]
+  if (a.mode === "MANUAL") flags.push(["hand-written start", "Scene and starting plan written by hand"]);
+  if (a.mode === "LIVE_ARGON") flags.push(["plan from Argon", "Plan patched by Gemini 4 Argon in a live call"]);
+  if (a.mode === "ARGON_INVALID") flags.push(["Argon output invalid", "Argon's fix failed validation, so the plan was kept"]);
+  if (a.mode === "LOCAL_GEMMA_BASE") flags.push(["plan from local Gemma (base)", "Plan from the base Gemma 4 model running locally, for the comparison"]);
+  if (a.mode === "LOCAL_GEMMA_TUNED") flags.push(["plan from local Gemma (fine-tuned)", "Plan from the fine-tuned Gemma 4 adapter running locally, for the comparison"]);
   const edited = state.run?.input?.initial_patch;
-  if (a.attempt === 1 && edited) flags.push(`Starting plan edited before the run: ${describePatch(edited)}`);
+  if (a.attempt === 1 && edited) flags.push(["edited before run", `Starting plan edited before the run: ${describePatch(edited)}`]);
   const sc = state.run?.manifest?.scene;
   if (sc) {
     const dist = (b) => Math.hypot(...a.plan.handover_point_m.map((v, i) => v - b[i]));
     const nearest = Math.min(dist(sc.left_arm_base_m), dist(sc.right_arm_base_m));
-    if (nearest > ARM_REACH_M) flags.push(`Handover point ${nearest.toFixed(2)} m from the nearest arm base, beyond its reach`);
+    if (nearest > ARM_REACH_M) flags.push(["handover past reach", `Handover point ${nearest.toFixed(2)} m from the nearest arm base; the arm reaches about ${ARM_REACH_M} m`]);
   }
+  if (a.sim.metrics.grasp_assist_used) flags.push(["weld grasp", "Grasp assist: the can is welded to the gripper once it closes"]);
+
+  // Obstacle contact stays visible: it's a measurement, not provenance.
+  const m = a.sim.metrics;
+  const obstacles = a.verdict.obstacle_contact_measured
+    ? `Obstacles: ${m.max_arm_obstacle_contact_force_n.toFixed(1)} N contact, arm ${(m.max_arm_obstacle_penetration_m * 1000).toFixed(1)} mm, can ${(m.max_object_obstacle_penetration_m * 1000).toFixed(1)} mm deep`
+    : "Obstacle collisions not measured (earlier layout)";
+  if (a.verdict.obstacle_contact_measured) flags.push(["new layout", "New workspace layout with screens and laptop fitted from the video"]);
+
   box.innerHTML = `<div class="word">${a.verdict.passed ? "Pass" : "Fail"}</div>
     <div class="reason">${escapeHtml(attemptHeadline(a))}</div>
     <div class="by">Measured by MuJoCo, attempt ${a.attempt}</div>
-    ${flags.length ? `<div class="flags">${flags.map((f) => `<span class="flag">${escapeHtml(f)}</span>`).join("")}</div>` : ""}`;
+    <div class="obstacles ${a.verdict.obstacle_contact_measured ? "" : "unmeasured"}">${escapeHtml(obstacles)}</div>
+    ${flags.length ? `<details class="provenance"><summary>${escapeHtml(flags.map((f) => f[0]).join(", "))}</summary>
+      <ul>${flags.map((f) => `<li>${escapeHtml(f[1])}</li>`).join("")}</ul></details>` : ""}`;
 }
 
 function frameName(k) {
@@ -501,11 +537,77 @@ function scanParts(geo, role, withOutline) {
   return parts;
 }
 
+// Collision surfaces: the table and fitted props (laptop, screens) from this run's motion log,
+// as MuJoCo placed them, drawn as bright outlines on top of any view so the splat-to-sim fit
+// can be inspected. Arms are left out so the outlines stay readable.
+const colliderMaterial = new THREE.LineBasicMaterial({ color: "#7fe0ff", transparent: true, opacity: 0.95, depthTest: false });
+
+function applyColliders() {
+  robotLayer.traverse((o) => { if (o.userData.collider) o.visible = state.showColliders; });
+  $("colliders").setAttribute("aria-pressed", String(state.showColliders));
+  setCaption();
+}
+
+// --- Object appearance from a segmented splat --------------------------------------------
+// A scene object may name visual_splat_path: its own splat, with its origin at the object's
+// base center in the table frame. In Photoreal it rides on the simulated body (so it moves
+// with the physics) and the plain stand-in shape is hidden. Physics is unchanged.
+
+function attachObjectAppearances() {
+  const objects = state.run?.manifest?.scene?.objects ?? [];
+  for (const o of objects) {
+    if (!o.visual_splat_path) continue;
+    const i = (state.bodyNames ?? []).indexOf(o.name);
+    if (i < 0) continue;
+    const body = state.bodies[i];
+    body.traverse((c) => { if (c.userData.solid) c.userData.replacedInPhoto = true; });
+    const url = `assets/${o.visual_splat_path}`;
+    // The splat's origin is the object's base center in the table frame. Place it in the
+    // body's local frame using the body's pose at the first frame, when the object is resting.
+    const f0 = state.rollout.frames[0];
+    const bodyPos = new THREE.Vector3(f0[i * 7], f0[i * 7 + 1], f0[i * 7 + 2]);
+    const bodyQuatInv = new THREE.Quaternion(f0[i * 7 + 4], f0[i * 7 + 5], f0[i * 7 + 6], f0[i * 7 + 3]).invert();
+    const baseLocal = new THREE.Vector3(o.pos_m[0], o.pos_m[1], o.pos_m[2]).sub(bodyPos).applyQuaternion(bodyQuatInv);
+    // Render the object's own Gaussians (scale, rotation, opacity and color intact) with the same
+    // splat renderer as the desk. Its viewer is a child of the moving body, so it follows the
+    // physics; the library sorts and culls using the splat mesh's world matrix.
+    const holder = new THREE.Group();
+    holder.position.copy(baseLocal);
+    holder.quaternion.copy(bodyQuatInv);
+    holder.userData.photoAppearance = true;
+    holder.visible = state.splatStyle === "photo";
+    body.add(holder);
+    loadObjectSplat(url).then((viewer) => {
+      holder.add(viewer);
+    }).catch((err) => {
+      // Without its own splat the object keeps its plain shape in every view; no stand-in dots.
+      body.remove(holder);
+      body.traverse((c) => { if (c.userData.solid) c.userData.replacedInPhoto = false; });
+      setCaption(`The ${o.name}'s own splat didn't load (${err.message}), so it shows as a plain shape.`);
+      applyRenderStyle();
+    });
+  }
+}
+
+async function loadObjectSplat(url) {
+  const GS = await import("@mkkellogg/gaussian-splats-3d");
+  const viewer = new GS.DropInViewer({ dynamicScene: true, gpuAcceleratedSort: false, sharedMemoryForWorkers: false });
+  await viewer.addSplatScenes([{ path: url, showLoadingUI: false }]);
+  return viewer;
+}
+
 function applyRenderStyle() {
   const scan = state.renderStyle === "scan";
+  const photo = state.splatStyle === "photo";
   robotLayer.traverse((o) => {
     if (o.userData.scan) o.visible = scan;
-    if (o.userData.solid) o.visible = !scan;
+    if (o.userData.solid) {
+      // In Photoreal the trained splat is the table and the screens; the static proxy
+      // boxes would cover its texture, so only the arms and the can stay solid.
+      const staticProxy = o.userData.role === "prop" || o.userData.role === "table";
+      o.visible = !scan && !(photo && (staticProxy || o.userData.replacedInPhoto));
+    }
+    if (o.userData.photoAppearance) o.visible = photo;
   });
   floorDots.visible = scan;
 }
@@ -549,6 +651,7 @@ function geomObject(g, role) {
 
   if (g.type === "mesh") {
     const solid = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+    solid.userData.role = role;
     solid.userData.solid = true;
     solid.visible = !scanOn;
     obj.add(solid);
@@ -577,6 +680,7 @@ function geomObject(g, role) {
   }
   const solid = new THREE.Group();
   solid.userData.solid = true;
+  solid.userData.role = role;
   solid.add(new THREE.Mesh(geo, mat));
   if (style.edges) {
     solid.add(new THREE.LineSegments(
@@ -588,6 +692,13 @@ function geomObject(g, role) {
   const parts = scanParts(geo, role, role !== "task");
   parts.visible = scanOn;
   obj.add(solid, parts);
+  // Collision outlines for the environment only (table, laptop, screens), not the arms.
+  if (role === "prop" || role === "table") {
+    const collider = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 1), colliderMaterial);
+    collider.userData.collider = true;
+    collider.visible = state.showColliders;
+    obj.add(collider);
+  }
   return obj;
 }
 
@@ -613,6 +724,7 @@ async function showRollout(a, autoplay) {
         robotLayer.add(group);
         state.bodies.push(group);
       }
+      attachObjectAppearances();
       applyRenderStyle();
       const boxesOnly = log.bodies.every((b) => b.geoms.every((g) => g.type !== "mesh"));
       setCaption(boxesOnly ? "Arms drawn as simple boxes here; the camera frames show the real ALOHA meshes." : "");
@@ -664,7 +776,27 @@ let realPoints = null;   // centers of the trained splat, drawn as reconstructed
 let photoViewer = null;  // Gaussian splatting renderer, loaded on first use
 let photoNote = "";
 
-const SCAN_URL = "assets/desk.splat";  // a trained Gaussian splat of the desk; absent until training finishes
+const DEFAULT_SCAN_URL = "assets/desk.splat";  // default trained desk splat; a scene can name its own
+let scanUrl = DEFAULT_SCAN_URL;   // background splat for the current run
+let loadedScanUrl = null;         // what's actually loaded (null = nothing tried yet)
+
+function backgroundUrlFor(run) {
+  // A loaded run decides its own background; with no run, the profile's background is used.
+  const path = run?.manifest ? run.manifest.scene?.background_splat_path : PROFILE.background;
+  return path ? `assets/${path}` : DEFAULT_SCAN_URL;
+}
+
+// Switch the background splat when a run's scene names a different one. Old runs and the
+// default demo name none, so they keep web/assets/desk.splat.
+async function useBackground(url) {
+  if (url === loadedScanUrl) return;
+  if (realPoints) { splatLayer.remove(realPoints); realPoints.geometry.dispose(); realPoints = null; }
+  if (photoViewer) { splatLayer.remove(photoViewer); photoViewer.dispose?.(); photoViewer = null; }
+  splatBuffer = null;
+  scanUrl = url;
+  loadedScanUrl = url;
+  await loadSplat();
+}
 const REAL_POINT_COLOR = new THREE.Color("#8fd0e3");  // reconstructed data: cool blue, never gold
 
 const MODE_NOTES = {
@@ -678,8 +810,13 @@ function setCaption(extra) {
   const real = realPoints && state.splatStyle === "gold"
     ? " Blue dots are the desk reconstructed from the video, aligned to the sim table by fitting its plane and rim."
     : "";
-  const base = MODE_NOTES[state.splatStyle] + real + (photoNote ? " " + photoNote : "");
-  $("caption").textContent = [base, captionText].filter(Boolean).join(" ");
+  const colliders = state.showColliders ? " Blue outlines are the table and obstacle surfaces MuJoCo simulated in this run." : "";
+  const segmented = state.splatStyle === "photo" && (state.run?.manifest?.scene?.objects ?? []).some((o) => o.visual_splat_path)
+    ? " The can is its own splat, cut out of the scan, riding on the simulated can." : "";
+  const base = MODE_NOTES[state.splatStyle] + real + segmented + colliders + (photoNote ? " " + photoNote : "");
+  const text = [base, captionText].filter(Boolean).join(" ");
+  $("caption").textContent = text;
+  $("caption").title = text;  // full text on hover when narrow screens clamp it
 }
 
 function applyAlign(obj) {
@@ -698,7 +835,7 @@ function setPhotoAvailability(ready) {
 async function loadSplat() {
   setPhotoAvailability(false);
   try {
-    const res = await fetch(SCAN_URL);
+    const res = await fetch(scanUrl);
     if (!res.ok) throw new Error(String(res.status));
     splatBuffer = await res.arrayBuffer();
     try { splatAlign = { ...splatAlign, ...(await getJSON("assets/align.json")) }; } catch { /* identity until aligned */ }
@@ -726,7 +863,7 @@ async function ensurePhotoViewer() {
   if (photoViewer) return photoViewer;
   const GS = await import("@mkkellogg/gaussian-splats-3d");
   const viewer = new GS.DropInViewer({ gpuAcceleratedSort: false, sharedMemoryForWorkers: false });
-  await viewer.addSplatScenes([{ path: SCAN_URL, showLoadingUI: false }]);
+  await viewer.addSplatScenes([{ path: scanUrl, showLoadingUI: false }]);
   applyAlign(viewer);
   splatLayer.add(viewer);
   photoViewer = viewer;
@@ -755,6 +892,8 @@ async function setScanMode(mode) {
 
 // --- Controls ---------------------------------------------------------------------------
 
+$("colliders").onclick = () => { state.showColliders = !state.showColliders; applyColliders(); };
+
 $("scan-modes").addEventListener("click", (e) => {
   const btn = e.target.closest("button");
   if (btn && !btn.disabled) setScanMode(btn.dataset.mode);
@@ -776,6 +915,7 @@ window.addEventListener("keydown", (e) => {
   else if (e.key === " ") { e.preventDefault(); $("replay").click(); }
   else if (e.key.toLowerCase() === "h") { setCloseup(false); }
   else if (e.key.toLowerCase() === "c") setCloseup(!state.closeup);
+  else if (e.key.toLowerCase() === "o") { state.showColliders = !state.showColliders; applyColliders(); }
   else if (e.key.toLowerCase() === "t") {
     const next = SCAN_ORDER.slice(SCAN_ORDER.indexOf(state.splatStyle) + 1).concat(SCAN_ORDER)
       .find((m) => m !== state.splatStyle && (m !== "photo" || splatBuffer));
@@ -908,6 +1048,16 @@ const PHASE_TEXT = {
 };
 
 // The header wraps differently at every width, so measure it instead of guessing.
+// Keep the verdict and critique card above the caption row, however tall it wraps.
+function positionOverlays() {
+  const stage = canvas.parentElement.getBoundingClientRect();
+  const foot = document.querySelector(".stage-foot").getBoundingClientRect();
+  const bottom = `${Math.ceil(stage.bottom - foot.top) + 12}px`;
+  $("verdict").style.bottom = bottom;
+  $("subtitles").style.bottom = bottom;
+}
+new ResizeObserver(() => positionOverlays()).observe(document.querySelector(".stage-foot"));
+
 function positionPhases() {
   const list = $("phases");
   if (list.hidden) return;
@@ -1004,7 +1154,7 @@ function renderPlanner() {
   const sc = state.baseScene.scene;
   const dist = (b) => Math.hypot(...state.draft.handover_point_m.map((v, i) => v - b[i]));
   const nearest = Math.min(dist(sc.left_arm_base_m), dist(sc.right_arm_base_m));
-  const reach = nearest > ARM_REACH_M ? ` Handover point is ${nearest.toFixed(2)} m from the nearest arm base, beyond its reach.` : "";
+  const reach = nearest > ARM_REACH_M ? ` Handover point is ${nearest.toFixed(2)} m from the nearest arm base; the arm reaches about ${ARM_REACH_M} m.` : "";
   $("planner-diff").textContent = describePatch(patch) + "." + reach;
 
   const running = state.source === "api" && state.run?.summary?.state === "running";
@@ -1103,25 +1253,64 @@ function tick(now) {
 canvas.addEventListener("dblclick", () => setCloseup(false));
 
 async function main() {
+  if (PROFILE.label) {
+    const tag = document.createElement("span");
+    tag.className = "variant-tag";
+    tag.textContent = PROFILE.label;
+    document.querySelector(".masthead h1").after(tag);
+  }
   state.source = await detectSource();
   let runs = [];
   try { runs = await listRuns(); } catch { /* no runs yet */ }
   const requested = new URLSearchParams(location.search).get("run");  // ?run=<id> picks a specific run
-  // Default: a requested run, else a live one, else the newest complete repair story
-  // (passed after more than one attempt), else the newest run with any attempt.
+  // Default: a requested run, else a live one, else the pinned collision proof, else the
+  // newest complete repair story (passed after more than one attempt), else the newest run.
+  // Only runs on this profile's background count as its defaults, so an older layout is never
+  // picked by accident; ?run=<id> still opens any run.
+  const mine = runs.filter((r) => (r.scene_background ?? null) === PROFILE.background);
   const pick = runs.find((r) => r.run_id === requested)
     ?? runs.find((r) => r.state === "running")
-    ?? runs.find((r) => r.passed && r.attempts > 1)
-    ?? runs.find((r) => r.attempts > 0);
+    ?? mine.find((r) => r.run_id === PINNED_RUN)
+    ?? mine.find((r) => r.passed && r.attempts > 1)
+    ?? mine.find((r) => r.attempts > 0);
   if (pick) await loadRun(pick.run_id);
   render();
   renderPhases();
   heroCamera();
   loadBaseScene();
-  await loadSplat();
+  await useBackground(backgroundUrlFor(state.run));
   requestAnimationFrame(tick);
   if (state.steps.length) await goTo(0);
   if (state.run?.summary?.state === "running") pollLive();
 }
 
+// --- Hooks for add-on panels (compare.js) ------------------------------------------------
+// replay(runId, attempt): load a loop run (runs/<id>/manifest.json) and play that attempt.
+// playAttempt(attemptResult, baseUrl, scene): play one AttemptResult from any folder laid out
+//   like a loop run, i.e. `${baseUrl}attempt_<n>/<rollout and keyframes>`.
+window.argonTwin = {
+  async replay(runId, attempt = 1) {
+    await loadRun(runId);
+    render();
+    renderPhases();
+    const i = state.steps.findIndex((st) => st.kind === "attempt" && st.attempt.attempt === attempt);
+    await goTo(i >= 0 ? i : 0);
+  },
+  async playAttempt(attemptResult, baseUrl, scene) {
+    state.runId = `ext:${baseUrl}`;
+    state.base = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+    state.run = {
+      summary: { run_id: state.runId, source: "REPLAY", state: "done", created_at: null },
+      manifest: { scene, attempts: [attemptResult] },
+      log: [],
+    };
+    render();
+    renderPhases();
+    await goTo(0);
+  },
+};
+
 main();
+
+// Add-on panel: loads only if web/compare.js exists; it brings its own stylesheet.
+import("./compare.js").catch(() => {});

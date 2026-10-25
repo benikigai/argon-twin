@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="stylesheet" href="style.css?v=13">
   <script type="importmap">
     {
       "imports": {
@@ -61,8 +61,40 @@
     <section id="subtitles" class="subtitles" aria-live="polite" hidden></section>
     <aside id="evidence" class="evidence" hidden></aside>
 
+    <aside id="how-built" class="how-built" aria-label="How the 3D twin was built" hidden>
+      <div class="how-built-head">
+        <h2>From 10s Phone Video to Collision-Checked 3D Twin</h2>
+        <button id="how-built-close" type="button" class="quiet" aria-label="Close">✕</button>
+      </div>
+      <img src="assets/splat-pipeline.svg" alt="Pipeline diagram: Step 1 10.4 s iPhone capture -> Step 2 Local pycolmap sparse 3D points -> Step 3 Colab T4 CUDA gsplat -> Step 4 RANSAC plane fit into MuJoCo 3.17 collision boxes" class="how-built-strip">
+      <div class="how-built-media">
+        <figure class="how-built-video-wrap">
+          <video id="how-built-video" controls playsinline loop muted preload="metadata" poster="assets/scan/0001.jpg" src="assets/desk-scan-blurred.mp4"></video>
+          <figcaption>10.4 s walkthrough clip (<code>IMG_1272.MOV</code>, 52 frames; hit Play or click any angle →)</figcaption>
+        </figure>
+        <div class="how-built-grid" aria-label="8 camera angles around the SHACK15 desk">
+          <button type="button" class="scan-thumb" data-time="0.0"><img src="assets/scan/0001.jpg" alt="Frame 0001 front-left angle"><span>#01 · 0.0s</span></button>
+          <button type="button" class="scan-thumb" data-time="1.4"><img src="assets/scan/0008.jpg" alt="Frame 0008 front angle"><span>#08 · 1.4s</span></button>
+          <button type="button" class="scan-thumb" data-time="2.8"><img src="assets/scan/0015.jpg" alt="Frame 0015 front-right angle"><span>#15 · 2.8s</span></button>
+          <button type="button" class="scan-thumb" data-time="4.2"><img src="assets/scan/0022.jpg" alt="Frame 0022 right-top angle"><span>#22 · 4.2s</span></button>
+          <button type="button" class="scan-thumb" data-time="5.6"><img src="assets/scan/0029.jpg" alt="Frame 0029 right profile angle"><span>#29 · 5.6s</span></button>
+          <button type="button" class="scan-thumb" data-time="7.0"><img src="assets/scan/0036.jpg" alt="Frame 0036 high oblique angle"><span>#36 · 7.0s</span></button>
+          <button type="button" class="scan-thumb" data-time="8.4"><img src="assets/scan/0043.jpg" alt="Frame 0043 center-right angle"><span>#43 · 8.4s</span></button>
+          <button type="button" class="scan-thumb" data-time="9.8"><img src="assets/scan/0050.jpg" alt="Frame 0050 center-front angle"><span>#50 · 9.8s</span></button>
+        </div>
+      </div>
+      <ol class="how-built-steps">
+        <li><b>1. Multi-view capture &amp; privacy blur:</b> 10.4 s iPhone 0.5× walkthrough (<code>52</code> frames @ 5 fps); attendee faces &amp; background blurred via macOS Apple Vision.</li>
+        <li><b>2. Local <code>pycolmap</code> sparse 3D:</b> SIFT feature matching + bundle adjustment on Mac CPU solves <code>52/52</code> camera poses and <b><code>20,762</code> sparse 3D points</b> (<code>3,456</code> filtered starting points with &lt;3 px error).</li>
+        <li><b>3. Colab T4 GPU <code>gsplat</code> (<code>68k</code> → <code>17k</code> Gaussians):</b> Open-source <code>gsplat</code> 1.5.3 custom CUDA kernels on an NVIDIA Tesla T4 GPU optimize 3D Gaussian ellipsoids (1,500 steps in 10.0 s) into <code>68,192</code> Gaussians, cropped to <b><code>17,157</code> desk Gaussians</b> (<code>desk.splat</code>) + <b><code>943</code> Celsius-can Gaussians</b>.</li>
+        <li><b>4. RANSAC plane fit → MuJoCo collision boxes:</b> 2,000-iteration RANSAC fits the tabletop frame and 5 rigid screen/laptop boxes (<code>1.6–3.7 mm</code> RMS, <code>+8 mm</code> margin) so MuJoCo measures real arm-screen contact force (<code>N</code>) and penetration (<code>mm</code>).</li>
+      </ol>
+    </aside>
+
     <div class="stage-foot">
       <span id="caption"></span>
+      <button id="how-built-btn" type="button" class="quiet-toggle" aria-pressed="false" aria-controls="how-built">How 3D twin was built</button>
+      <button id="colliders" type="button" class="quiet-toggle" aria-pressed="false">Collision surfaces</button>
       <div id="scan-modes" class="scan-modes" role="group" aria-label="View">
         <button type="button" data-mode="gold" aria-pressed="true">Gold</button>
         <button type="button" data-mode="solid" aria-pressed="false">Solid</button>
@@ -75,6 +107,33 @@
     <ol id="steps"></ol>
   </nav>
 
-  <script type="module" src="app.js?v=20"></script>
+  <script type="module" src="app.js?v=38"></script>
+  <script>
+    (() => {
+      const btn = document.getElementById("how-built-btn");
+      const panel = document.getElementById("how-built");
+      const closeBtn = document.getElementById("how-built-close");
+      const vid = document.getElementById("how-built-video");
+      if (!btn || !panel) return;
+      const setOpen = (open) => {
+        panel.hidden = !open;
+        btn.setAttribute("aria-pressed", String(open));
+        if (!open && vid) vid.pause();
+      };
+      btn.addEventListener("click", () => setOpen(panel.hidden));
+      if (closeBtn) closeBtn.addEventListener("click", () => setOpen(false));
+      panel.querySelectorAll(".scan-thumb").forEach((thumb) => {
+        thumb.addEventListener("click", () => {
+          if (!vid) return;
+          const t = parseFloat(thumb.dataset.time || "0");
+          vid.currentTime = t;
+          vid.play().catch(() => {});
+        });
+      });
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !panel.hidden) setOpen(false);
+      });
+    })();
+  </script>
 </body>
 </html>

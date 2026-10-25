@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <title>How the 3D Gaussian Splat and MuJoCo Collision Twin were built from a 10.4 second phone video</title>
+
+  <rect width="1200" height="420" fill="#0b0c0e"/>
+
+  <!-- Header -->
+  <text x="36" y="48" font-size="26" font-weight="800" fill="#e3b341">How the 3D Gaussian Splat &amp; Collision Twin Were Built</text>
+  <text x="36" y="74" font-size="14" fill="#9a968c">Pixels → Sparse 3D Points (Mac CPU) → 3D Gaussian Ellipsoids (Colab NVIDIA T4 CUDA) → RANSAC Rigid Collision Boxes (MuJoCo 3.17)</text>
+
+  <!-- STAGE 1: iPhone Capture -->
+  <g transform="translate(36, 102)">
+    <rect width="252" height="240" rx="10" fill="#15171b" stroke="#2c3036" stroke-width="1.5"/>
+    <text x="18" y="30" font-size="13" font-weight="700" fill="#9a968c" letter-spacing="0.06em">STEP 1 · CAPTURE (MAC)</text>
+    <text x="18" y="56" font-size="18" font-weight="800" fill="#edeae2">10.4 s Phone Video</text>
+    <text x="18" y="78" font-size="13" fill="#9a968c">iPhone 17 Pro Max · 0.5× lens</text>
+
+    <!-- Mini camera orbit illustration -->
+    <ellipse cx="126" cy="134" rx="68" ry="26" fill="none" stroke="#2c3036" stroke-dasharray="4 4" stroke-width="1.5"/>
+    <ellipse cx="126" cy="134" rx="40" ry="15" fill="#1d2025" stroke="#e3b341" stroke-width="1.5"/>
+    <text x="126" y="138" font-size="10.5" fill="#e3b341" text-anchor="middle" font-weight="700">SHACK15 desk</text>
+    <circle cx="58" cy="134" r="4" fill="#edeae2"/>
+    <circle cx="126" cy="108" r="4" fill="#edeae2"/>
+    <circle cx="194" cy="134" r="4" fill="#edeae2"/>
+    <circle cx="126" cy="160" r="4" fill="#edeae2"/>
+
+    <text x="18" y="190" font-size="13" fill="#edeae2" font-weight="600">• 52 frames @ 5 fps (IMG_1272)</text>
+    <text x="18" y="210" font-size="13" fill="#9a968c">• Apple Vision blurs background</text>
+    <text x="18" y="226" font-size="13" fill="#9a968c">  attendees &amp; faces</text>
+  </g>
+
+  <line x1="292" y1="222" x2="316" y2="222" stroke="#e3b341" stroke-width="2"/>
+  <polygon points="324,222 314,217 314,227" fill="#e3b341"/>
+
+  <!-- STAGE 2: Local pycolmap -->
+  <g transform="translate(328, 102)">
+    <rect width="262" height="240" rx="10" fill="#15171b" stroke="#e3b341" stroke-width="1.5"/>
+    <text x="18" y="30" font-size="13" font-weight="700" fill="#e3b341" letter-spacing="0.06em">STEP 2 · LOCAL PYCOLMAP (CPU)</text>
+    <text x="18" y="56" font-size="18" font-weight="800" fill="#edeae2">Sparse 3D Point Cloud</text>
+    <text x="18" y="78" font-size="13" fill="#9a968c">capture/prepare_local.py (SfM)</text>
+
+    <!-- Sparse dots illustration -->
+    <g fill="#e3b341" opacity="0.9">
+      <circle cx="78" cy="126" r="2.2"/><circle cx="92" cy="118" r="2.2"/><circle cx="108" cy="122" r="2.2"/>
+      <circle cx="124" cy="114" r="2.2"/><circle cx="142" cy="120" r="2.2"/><circle cx="158" cy="128" r="2.2"/>
+      <circle cx="174" cy="119" r="2.2"/><circle cx="98" cy="138" r="2.2"/><circle cx="118" cy="134" r="2.2"/>
+      <circle cx="136" cy="140" r="2.2"/><circle cx="152" cy="144" r="2.2"/><circle cx="112" cy="150" r="2.2"/>
+      <circle cx="130" cy="152" r="2.2"/><circle cx="166" cy="138" r="2.2"/><circle cx="86" cy="144" r="2.2"/>
+    </g>
+    <text x="131" y="168" font-size="12" fill="#e3b341" text-anchor="middle" font-weight="700">20,762 raw → 3,456 filtered pts</text>
+
+    <text x="18" y="190" font-size="13" fill="#edeae2" font-weight="600">• 52 / 52 camera poses solved</text>
+    <text x="18" y="210" font-size="13" fill="#9a968c">• SIFT feature matching +</text>
+    <text x="18" y="226" font-size="13" fill="#9a968c">  bundle adjustment (&lt;3 px err)</text>
+  </g>
+
+  <line x1="594" y1="222" x2="618" y2="222" stroke="#e3b341" stroke-width="2"/>
+  <polygon points="626,222 616,217 616,227" fill="#e3b341"/>
+
+  <!-- STAGE 3: Colab T4 gsplat -->
+  <g transform="translate(630, 102)">
+    <rect width="268" height="240" rx="10" fill="#15171b" stroke="#7fe0ff" stroke-width="1.5"/>
+    <text x="18" y="30" font-size="13" font-weight="700" fill="#7fe0ff" letter-spacing="0.06em">STEP 3 · COLAB T4 GPU (CUDA)</text>
+    <text x="18" y="56" font-size="18" font-weight="800" fill="#edeae2">3D Gaussian Splatting</text>
+    <text x="18" y="78" font-size="13" fill="#9a968c">Open-source gsplat 1.5.3 · 1,500 steps</text>
+
+    <!-- 3D Gaussian ellipsoids illustration -->
+    <g opacity="0.85">
+      <ellipse cx="95" cy="128" rx="22" ry="9" transform="rotate(-18 95 128)" fill="#7fe0ff" fill-opacity="0.35" stroke="#7fe0ff" stroke-width="1.2"/>
+      <ellipse cx="134" cy="124" rx="26" ry="11" transform="rotate(12 134 124)" fill="#e3b341" fill-opacity="0.35" stroke="#e3b341" stroke-width="1.2"/>
+      <ellipse cx="168" cy="134" rx="20" ry="8" transform="rotate(-8 168 134)" fill="#7fd1a8" fill-opacity="0.35" stroke="#7fd1a8" stroke-width="1.2"/>
+      <ellipse cx="118" cy="142" rx="28" ry="10" transform="rotate(6 118 142)" fill="#edeae2" fill-opacity="0.28" stroke="#edeae2" stroke-width="1"/>
+    </g>
+    <text x="134" y="168" font-size="12" fill="#7fe0ff" text-anchor="middle" font-weight="700">3D ellipsoids: pos + scale + quat + α</text>
+
+    <text x="18" y="190" font-size="13" fill="#edeae2" font-weight="600">• 68,192 full → 17,157 desk</text>
+    <text x="18" y="210" font-size="13" fill="#9a968c">• + 943 Celsius-can Gaussians</text>
+    <text x="18" y="226" font-size="13" fill="#9a968c">• Custom CUDA on NVIDIA T4 (10 s)</text>
+  </g>
+
+  <line x1="902" y1="222" x2="926" y2="222" stroke="#7fd1a8" stroke-width="2"/>
+  <polygon points="934,222 924,217 924,227" fill="#7fd1a8"/>
+
+  <!-- STAGE 4: RANSAC Plane Fit -> MuJoCo -->
+  <g transform="translate(938, 102)">
+    <rect width="226" height="240" rx="10" fill="#15171b" stroke="#7fd1a8" stroke-width="1.5"/>
+    <text x="18" y="30" font-size="13" font-weight="700" fill="#7fd1a8" letter-spacing="0.06em">STEP 4 · RANSAC → MUJOCO</text>
+    <text x="18" y="56" font-size="18" font-weight="800" fill="#edeae2">Rigid Collision Twin</text>
+    <text x="18" y="78" font-size="13" fill="#9a968c">fit_collision_scene.py</text>
+
+    <!-- Wireframe collision boxes -->
+    <rect x="64" y="100" width="52" height="30" fill="#7fd1a8" fill-opacity="0.12" stroke="#7fd1a8" stroke-width="1.5"/>
+    <rect x="64" y="132" width="52" height="22" fill="#7fd1a8" fill-opacity="0.12" stroke="#7fd1a8" stroke-width="1.5"/>
+    <rect x="34" y="128" width="26" height="24" fill="#7fd1a8" fill-opacity="0.12" stroke="#7fd1a8" stroke-width="1.5"/>
+    <rect x="138" y="126" width="14" height="28" rx="3" fill="#e3b341" fill-opacity="0.25" stroke="#e3b341" stroke-width="1.5"/>
+    <text x="113" y="168" font-size="12" fill="#7fd1a8" text-anchor="middle" font-weight="700">1.6–3.7 mm RMS (+8 mm margin)</text>
+
+    <text x="18" y="190" font-size="13" fill="#edeae2" font-weight="600">• 2,000-iter RANSAC planes</text>
+    <text x="18" y="210" font-size="13" fill="#9a968c">• 5 screen/laptop boxes +</text>
+    <text x="18" y="226" font-size="13" fill="#9a968c">  tabletop in MuJoCo 3.17</text>
+  </g>
+
+  <!-- Footer summary bar -->
+  <rect x="36" y="360" width="1128" height="40" rx="8" fill="#15171b" stroke="#2c3036"/>
+  <text x="54" y="385" font-size="12.5" fill="#e3b341" font-weight="700">Why both?</text>
+  <text x="128" y="385" font-size="12.5" fill="#9a968c">3D Gaussian Splatting renders photorealistic visual context (desk.splat), while RANSAC plane fitting turns tracked 3D points into solid MuJoCo collision boxes.</text>
+</svg>

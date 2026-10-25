@@ -344,3 +344,118 @@ button.quiet:hover { color: var(--paper); border-color: transparent; }
 .planner:not([hidden]) ~ .evidence { display: none !important; }
 @media (max-width: 900px) { .phases { left: 1rem; max-width: calc(100% - 2rem); } }
 .scan-modes button:disabled { color: var(--dim); opacity: .6; cursor: not-allowed; }
+.stage-foot .quiet-toggle { margin-left: auto; margin-right: .5rem; white-space: nowrap; color: var(--dim); }
+.stage-foot .quiet-toggle + .quiet-toggle { margin-left: 0; }
+.stage-foot .quiet-toggle[aria-pressed="true"] { color: #7fe0ff; border-color: #7fe0ff; }
+
+.how-built {
+  position: absolute;
+  right: 2rem;
+  bottom: 3.6rem;
+  width: min(46rem, calc(100% - 4rem));
+  max-height: calc(100vh - 8.5rem);
+  overflow-y: auto;
+  background: rgba(22, 24, 28, .96);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--gold);
+  border-radius: var(--radius-frame);
+  padding: 1rem 1.15rem;
+  z-index: 20;
+}
+.how-built-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .8rem;
+  margin-bottom: .65rem;
+}
+.how-built-head h2 {
+  margin: 0;
+  font-size: var(--step-1);
+  color: var(--gold);
+  font-weight: 700;
+}
+.how-built-strip {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--line);
+  margin-bottom: .75rem;
+}
+.how-built-media {
+  display: grid;
+  grid-template-columns: 11.5rem 1fr;
+  gap: .75rem;
+  align-items: start;
+  margin-bottom: .8rem;
+}
+.how-built-video-wrap {
+  margin: 0;
+}
+.how-built-video-wrap video {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius-small);
+  border: 1px solid var(--gold);
+  background: #000;
+}
+.how-built-video-wrap figcaption {
+  margin-top: .3rem;
+  font-size: .78rem;
+  color: var(--dim);
+  line-height: 1.3;
+}
+.how-built-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .4rem;
+}
+.scan-thumb {
+  position: relative;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  overflow: hidden;
+  background: #000;
+}
+.scan-thumb:hover {
+  border-color: var(--gold);
+}
+.scan-thumb img {
+  width: 100%;
+  display: block;
+}
+.scan-thumb span {
+  position: absolute;
+  left: .25rem;
+  bottom: .2rem;
+  padding: .05rem .3rem;
+  font-size: .72rem;
+  background: rgba(0, 0, 0, .78);
+  color: var(--paper);
+  border-radius: 3px;
+}
+@media (max-width: 720px) {
+  .how-built-media { grid-template-columns: 1fr; }
+}
+.how-built-steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: .92rem;
+  color: var(--paper);
+}
+.how-built-steps li { margin: .35rem 0; }
+.how-built-steps b, .how-built-steps code { color: var(--gold); font-family: inherit; }
+
+/* Verdict: measured obstacle line always visible; provenance collapsed to one line. */
+.verdict .obstacles { margin-top: .5rem; font-size: .95rem; color: var(--paper); }
+.verdict .obstacles.unmeasured { color: var(--dim); }
+.verdict .provenance { margin-top: .4rem; font-size: .9rem; color: var(--gold); }
+.verdict .provenance summary { cursor: pointer; }
+.verdict .provenance summary:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.verdict .provenance ul { margin: .3rem 0 0; padding-left: 1.1rem; color: var(--paper); max-height: 30vh; overflow-y: auto; }
+@media (max-width: 900px) {
+  .stage-foot { flex-wrap: wrap; gap: .5rem; }
+  .stage-foot #caption { flex-basis: 100%; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}
+.variant-tag { display: inline-block; margin-top: .3rem; padding: .1rem .5rem; border: 1px solid var(--gold); border-radius: var(--radius-small); color: var(--gold); font-size: .85rem; }
