@@ -1,0 +1,114 @@
+{
+  "run_id": "20261025-133036",
+  "verified": "browser-started collision failure > live Argon critique > second MuJoCo attempt pass",
+  "first_metrics": {
+    "can_final_pos_m": [
+      0.24543492979370413,
+      -0.23137735960519695,
+      0.07738997407674865
+    ],
+    "can_final_xy_error_m": 0.005606744273151857,
+    "can_min_z_m": -0.002576611369344284,
+    "can_final_speed_m_s": 0.00013165937221929532,
+    "left_grasped": true,
+    "right_grasped": true,
+    "handover_completed": true,
+    "max_arm_table_contact_force_n": 0.0,
+    "max_arm_obstacle_contact_force_n": 95.51656517571551,
+    "max_arm_obstacle_penetration_m": 0.0028733837756735416,
+    "max_object_obstacle_penetration_m": 0.0008169311570233171,
+    "grasp_assist_used": true,
+    "failure_phase": "handover",
+    "sim_time_s": 15.520000000001852,
+    "wall_time_ms": 1094.2360000044573
+  },
+  "final_metrics": {
+    "can_final_pos_m": [
+      0.23937608064545812,
+      -0.22919413235754563,
+      0.07738998762425951
+    ],
+    "can_final_xy_error_m": 0.0010191653536727628,
+    "can_min_z_m": -0.0029748566638334445,
+    "can_final_speed_m_s": 0.00023961941313761854,
+    "left_grasped": true,
+    "right_grasped": true,
+    "handover_completed": true,
+    "max_arm_table_contact_force_n": 0.0,
+    "max_arm_obstacle_contact_force_n": 0.0,
+    "max_arm_obstacle_penetration_m": 0.0,
+    "max_object_obstacle_penetration_m": 0.0,
+    "grasp_assist_used": true,
+    "failure_phase": null,
+    "sim_time_s": 12.180000000000737,
+    "wall_time_ms": 847.9396659968188
+  },
+  "interaction": {
+    "interaction_id": "generateContent:-GbeavXMIP6j_uMP68HCgAU",
+    "previous_interaction_id": null,
+    "environment_id": null,
+    "model": "gemini-4-argon",
+    "agent": null
+  },
+  "usage": {
+    "input_tokens": 27319,
+    "output_tokens": 615,
+    "thought_tokens": null,
+    "total_tokens": 27934,
+    "wall_time_s": 23.68
+  },
+  "patch": {
+    "grasp_height_offset_m": null,
+    "approach_yaw_deg": null,
+    "pregrasp_clearance_m": null,
+    "lift_height_m": 0.14,
+    "handover_point_m": [
+      0.05,
+      -0.26,
+      0.22
+    ],
+    "handover_yaw_offset_deg": null,
+    "gripper_close_delay_s": null,
+    "release_delay_s": null,
+    "release_height_m": null,
+    "max_speed_m_s": null
+  },
+  "independent_repeat_passed": true,
+  "independent_repeat_metrics": {
+    "can_final_pos_m": [
+      0.23937608064545812,
+      -0.22919413235754563,
+      0.07738998762425951
+    ],
+    "can_final_xy_error_m": 0.0010191653536727628,
+    "can_min_z_m": -0.0029748566638334445,
+    "can_final_speed_m_s": 0.00023961941313761854,
+    "left_grasped": true,
+    "right_grasped": true,
+    "handover_completed": true,
+    "max_arm_table_contact_force_n": 0.0,
+    "max_arm_obstacle_contact_force_n": 0.0,
+    "max_arm_obstacle_penetration_m": 0.0,
+    "max_object_obstacle_penetration_m": 0.0,
+    "grasp_assist_used": true,
+    "failure_phase": null,
+    "sim_time_s": 12.180000000000737,
+    "wall_time_ms": 550.5049159983173
+  },
+  "source_sha256": {
+    "sim.py": "46db3a009aec5d82888c84f937a2db5defd128355e9d596df54a3369d0814e84",
+    "schemas.py": "324078dae6aa565b49276c6053f7d4dccd31be99ac25700de2cd5b807aad0921",
+    "config.py": "d834d1765228b64edd179dc8a09f2915d7265b4e3bdd521090908688e348041e",
+    "argon.py": "0f3a57675ff1a31b0679c9289c640dc5ad8a5d9c487255fe5e71dfacf4c6ff88",
+    "examples/desk_collision.json": "a889da204bd2a4a65154bbfe558ed21b11b04c00d8e70cc7ef02304b0d6f40a9"
+  },
+  "credential": "Existing Gemini Argon SF 2026-10-25 1Password Environment; values never recorded",
+  "browser_proof": {
+    "screenshot": "<local path removed>",
+    "url": "http://127.0.0.1:8000/?run=20261025-133036",
+    "photoreal": true,
+    "collision_surfaces": true,
+    "visible_verdict": "Pass, obstacles 0.0 N contact, arm 0.0 mm, can 0.0 mm deep"
+  },
+  "focused_tests_passed": 16
+}

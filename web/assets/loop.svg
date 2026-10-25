@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" width="1200" height="720" font-family="-apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <title>How ArgonTwin works: video in, Argon builds the scene, MuJoCo runs it, Argon critiques and patches until MuJoCo passes it</title>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#e3b341"/>
+    </marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9a968c"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="720" fill="#0b0c0e"/>
+
+  <text x="40" y="58" font-size="30" font-weight="800" fill="#e3b341">The loop</text>
+  <text x="40" y="86" font-size="15" fill="#9a968c">Render, watch, critique, fix. The model proposes. MuJoCo decides.</text>
+
+  <!-- input column -->
+  <g font-size="14">
+    <rect x="40" y="140" width="250" height="96" rx="10" fill="#15171b" stroke="#2c3036"/>
+    <text x="60" y="172" font-size="17" font-weight="700" fill="#edeae2">10 s phone video</text>
+    <text x="60" y="196" fill="#9a968c">my desk at SHACK15</text>
+    <text x="60" y="216" fill="#9a968c">IMG_1272.MOV</text>
+
+    <rect x="40" y="300" width="250" height="110" rx="10" fill="#15171b" stroke="#e3b341"/>
+    <text x="60" y="332" font-size="17" font-weight="700" fill="#e3b341">Argon builds the world</text>
+    <text x="60" y="356" fill="#9a968c">scene: table, can, laptop</text>
+    <text x="60" y="376" fill="#9a968c">first plan for both arms</text>
+    <text x="60" y="396" fill="#9a968c">one long call (long decode)</text>
+
+    <rect x="40" y="470" width="250" height="96" rx="10" fill="#15171b" stroke="#2c3036"/>
+    <text x="60" y="502" font-size="17" font-weight="700" fill="#edeae2">Desk scan</text>
+    <text x="60" y="526" fill="#9a968c">COLMAP + gsplat on Colab</text>
+    <text x="60" y="546" fill="#9a968c">gold points or photoreal</text>
+  </g>
+  <path d="M165,236 L165,296" stroke="#9a968c" stroke-width="2" fill="none" marker-end="url(#g)"/>
+  <path d="M90,236 C 20,330 20,420 90,466" stroke="#9a968c" stroke-width="2" fill="none" marker-end="url(#g)" stroke-dasharray="5 5"/>
+
+  <!-- loop ring centered at 640,380 -->
+  <circle cx="640" cy="380" r="190" fill="none" stroke="#2c3036" stroke-width="2"/>
+  <circle cx="640" cy="380" r="86" fill="#15171b" stroke="#7fd1a8" stroke-width="2"/>
+  <text x="640" y="370" font-size="20" font-weight="800" fill="#7fd1a8" text-anchor="middle">MuJoCo</text>
+  <text x="640" y="394" font-size="14" fill="#edeae2" text-anchor="middle">measures, then</text>
+  <text x="640" y="412" font-size="14" fill="#edeae2" text-anchor="middle">judge() decides</text>
+
+  <!-- ring nodes -->
+  <g font-size="14">
+    <!-- top: run -->
+    <rect x="540" y="150" width="200" height="74" rx="10" fill="#1d2025" stroke="#2c3036"/>
+    <text x="640" y="180" font-size="17" font-weight="700" fill="#edeae2" text-anchor="middle">1  Run</text>
+    <text x="640" y="202" fill="#9a968c" text-anchor="middle">two ALOHA arms try it</text>
+    <!-- right: watch -->
+    <rect x="770" y="343" width="210" height="74" rx="10" fill="#1d2025" stroke="#2c3036"/>
+    <text x="875" y="373" font-size="17" font-weight="700" fill="#edeae2" text-anchor="middle">2  Watch</text>
+    <text x="875" y="395" fill="#9a968c" text-anchor="middle">keyframes + metrics</text>
+    <!-- bottom: critique -->
+    <rect x="530" y="536" width="220" height="74" rx="10" fill="#1d2025" stroke="#e3b341"/>
+    <text x="640" y="566" font-size="17" font-weight="700" fill="#e3b341" text-anchor="middle">3  Critique</text>
+    <text x="640" y="588" fill="#9a968c" text-anchor="middle">Argon explains the failure</text>
+    <!-- left: fix -->
+    <rect x="320" y="343" width="190" height="74" rx="10" fill="#1d2025" stroke="#e3b341"/>
+    <text x="415" y="373" font-size="17" font-weight="700" fill="#e3b341" text-anchor="middle">4  Fix</text>
+    <text x="415" y="395" fill="#9a968c" text-anchor="middle">patch the plan</text>
+  </g>
+  <!-- ring arrows -->
+  <path d="M745,205 C 820,240 860,290 870,338" stroke="#e3b341" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M870,422 C 860,480 810,530 755,560" stroke="#e3b341" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M525,560 C 470,530 425,480 418,422" stroke="#e3b341" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M418,338 C 430,280 470,235 535,205" stroke="#e3b341" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <!-- input to run -->
+  <path d="M292,340 C 400,250 460,190 535,185" stroke="#9a968c" stroke-width="2" fill="none" marker-end="url(#g)"/>
+
+  <!-- exit: pass -->
+  <g font-size="14">
+    <rect x="1010" y="150" width="160" height="96" rx="10" fill="#15171b" stroke="#7fd1a8"/>
+    <text x="1090" y="182" font-size="17" font-weight="700" fill="#7fd1a8" text-anchor="middle">Pass</text>
+    <text x="1090" y="206" fill="#9a968c" text-anchor="middle">loop stops,</text>
+    <text x="1090" y="226" fill="#9a968c" text-anchor="middle">run is saved</text>
+
+    <rect x="1010" y="470" width="160" height="70" rx="10" fill="#15171b" stroke="#2c3036"/>
+    <text x="1090" y="500" font-size="15" font-weight="700" fill="#edeae2" text-anchor="middle">Live on my Mac</text>
+    <text x="1090" y="522" fill="#9a968c" text-anchor="middle">localhost:8000</text>
+
+    <rect x="1010" y="560" width="160" height="70" rx="10" fill="#15171b" stroke="#2c3036" stroke-dasharray="5 5"/>
+    <text x="1090" y="590" font-size="15" font-weight="700" fill="#edeae2" text-anchor="middle">Replay on Vercel</text>
+    <text x="1090" y="612" fill="#9a968c" text-anchor="middle">recorded, later</text>
+  </g>
+  <path d="M742,180 C 860,160 930,170 1005,190" stroke="#7fd1a8" stroke-width="2" fill="none" marker-end="url(#a)"/>
+  <path d="M1090,248 L1090,466" stroke="#9a968c" stroke-width="2" fill="none" marker-end="url(#g)"/>
+  <path d="M1090,540 L1090,556" stroke="#9a968c" stroke-width="2" fill="none" marker-end="url(#g)" stroke-dasharray="4 4"/>
+
+  <text x="40" y="690" font-size="13" fill="#9a968c">Up to 4 attempts per run. Gold boxes are Gemini 4 Argon. The green circle is the only place pass or fail is decided.</text>
+</svg>

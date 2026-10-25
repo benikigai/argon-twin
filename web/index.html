@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
   <script type="importmap">
     {
       "imports": {
@@ -28,6 +28,7 @@
     </header>
 
     <div class="status">
+      <button id="open-landing" type="button" class="back-landing">← Landing page</button>
       <span id="source" class="source">Connecting</span>
       <button id="closeup" type="button" aria-pressed="false">Gripper view</button>
       <button id="replay" type="button" disabled>Replay</button>
@@ -107,6 +108,238 @@
     <ol id="steps"></ol>
   </nav>
 
+  <div id="landing" class="landing" role="region" aria-label="ArgonTwin overview and landing page">
+    <header class="lp-nav">
+      <div class="lp-nav-inner">
+        <div class="lp-brand-wrap">
+          <span class="lp-brand">ArgonTwin</span>
+          <span class="lp-badge">Gemini 4 Argon SF Hackathon · Oct 25, 2026</span>
+        </div>
+        <nav class="lp-links" aria-label="Sections">
+          <a href="#lp-problem">Problem &amp; Users</a>
+          <a href="#lp-loop">How It Works</a>
+          <a href="#lp-splat">3D Splat Pipeline</a>
+          <a href="#lp-proof">Verified Proofs</a>
+          <a href="#lp-stack">Tech Stack</a>
+          <a href="https://github.com/benikigai/argon-twin" target="_blank" rel="noopener">GitHub ↗</a>
+        </nav>
+        <button type="button" class="primary lp-launch" data-launch-demo>Launch Interactive 3D Demo →</button>
+      </div>
+    </header>
+
+    <div class="lp-container">
+      <!-- HERO -->
+      <section class="lp-hero">
+        <div class="lp-hero-copy">
+          <p class="lp-eyebrow">Problem Statement Two · More Dimensions (Spatial 3D → Physics → Closed-Loop Repair)</p>
+          <h1>Your desk, rehearsed by robots before hardware.</h1>
+          <p class="lp-lead">
+            Walk a 10-second circle around a cluttered table with your phone. ArgonTwin reconstructs a photorealistic <b>3D Gaussian Splat</b> and fits rigid <b>MuJoCo 3.17 collision surfaces</b> to the screens and laptop. Two ALOHA robot arms rehearse a bimanual hand-over while <b>Gemini 4 Argon</b> watches rendered keyframes, diagnoses collisions, and patches the trajectory until deterministic physics passes.
+          </p>
+          <div class="lp-cta-row">
+            <button type="button" class="primary lp-cta-big" data-launch-demo>Launch Interactive 3D Demo →</button>
+            <button type="button" class="lp-cta-secondary" data-launch-run="20261025-134505" data-launch-mode="photo">View Photoreal Celsius Repair (5.05 mm) →</button>
+            <a href="#lp-splat" class="lp-cta-link">How we built the 3D Splat ↓</a>
+          </div>
+          <div class="lp-metrics-strip">
+            <div><strong>10.4 s</strong><span>iPhone 0.5× desk video (52 views)</span></div>
+            <div><strong>17,157 + 943</strong><span>Trained desk &amp; Celsius 3D Gaussians</span></div>
+            <div><strong>1.6–3.7 mm</strong><span>RANSAC screen collision fit RMS</span></div>
+            <div><strong>5.05 mm / 0 N</strong><span>Verified post-patch target error &amp; screen force</span></div>
+          </div>
+        </div>
+        <div class="lp-hero-card">
+          <div class="lp-hero-img-wrap" data-launch-demo title="Click to enter the interactive 3D stage">
+            <img src="assets/proof-celsius-photoreal.png" alt="ArgonTwin Photoreal view: two ALOHA arms handing over the segmented Celsius can above the trained SHACK15 desk Gaussian splat, with MuJoCo PASS 5.1 mm">
+            <span class="lp-hero-overlay-btn">Click to Orbit Live 3D Scene →</span>
+          </div>
+          <p class="lp-caption">Actual browser capture from verified run <code>20261025-134505</code>: trained SHACK15 desk Gaussian splat + segmented Celsius can splat riding on the simulated can in MuJoCo.</p>
+        </div>
+      </section>
+
+      <!-- PROBLEM & WHO NEEDS THIS -->
+      <section id="lp-problem" class="lp-section">
+        <div class="lp-section-head">
+          <span class="lp-kicker">01 · The Problem &amp; Who Needs This</span>
+          <h2>Every new table means days of manual simulation setup—so engineers skip it and risk real hardware.</h2>
+          <p>When bringing up a bimanual manipulation station in a lab, warehouse, or factory, the bottleneck isn't the robot controller—it's getting the real workspace into a physics simulator before running untested motions on hardware.</p>
+        </div>
+        <div class="lp-grid-3">
+          <article class="lp-card">
+            <span class="lp-tag">Target User · Robotics Bring-Up Engineers</span>
+            <h3>Days Lost to Tape-Measure URDFs</h3>
+            <p>Every time a two-arm station moves to a new workbench, an engineer has to measure the table, measure every monitor and fixture, hand-author an MJCF/URDF scene file, and hand-tune pregrasp clearances and handover waypoints. Because that takes days, teams skip simulation and test directly on $30k arms.</p>
+          </article>
+          <article class="lp-card">
+            <span class="lp-tag">Target User · Lab &amp; Factory Cell Operators</span>
+            <h3>Cluttered Desks Cause Hidden Collisions</h3>
+            <p>Real workspaces aren't empty tables—they have stacked monitors, laptops, stands, and cables. In our unpatched Attempt 1, the can actually lands within <code>5.6 mm</code> of the goal, <b>but an arm plows through the monitor at <code>95.5 N</code> (<code>2.87 mm</code> inside)</b>. Without fitted obstacle collision boxes, a naive check would call that a pass and break the screen.</p>
+          </article>
+          <article class="lp-card">
+            <span class="lp-tag">Target User · Embodied AI &amp; World Model Teams</span>
+            <h3>Models Shouldn't Grade Their Own Homework</h3>
+            <p>Google's showcase for Argon 3D worlds (<i>Desk Racer</i>) uses a critic model to rate screenshots of a game on a desk. Same input here, different finish line: in robotics, a VLM cannot declare its own success. <b>The model proposes; MuJoCo 3.17 decides</b> against fixed newton and millimeter thresholds.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- HOW THE SOLUTION WORKS (THE LOOP) -->
+      <section id="lp-loop" class="lp-section">
+        <div class="lp-section-head">
+          <span class="lp-kicker">02 · Closed-Loop Architecture</span>
+          <h2>The Model Proposes. MuJoCo Decides.</h2>
+          <p>ArgonTwin separates multimodal spatial reasoning (<code>gemini-4-argon</code>) from deterministic physical verification (<code>sim.py</code> + <code>schemas.judge</code>).</p>
+        </div>
+        <img src="assets/loop.svg" alt="The loop: 10s phone video -> Argon builds world -> MuJoCo runs two ALOHA arms -> Argon critiques keyframes and metrics -> patches plan until MuJoCo judge() passes" class="lp-diagram">
+        <div class="lp-grid-4">
+          <div class="lp-mini-card">
+            <h4>1. Deterministic Referee</h4>
+            <p><code>schemas.judge()</code> evaluates measured MuJoCo numbers against frozen thresholds in <code>config.py</code>: handover completed, not dropped, within <code>3 cm</code> of target, at rest, table force <code>&le; 25 N</code>, obstacle force <code>&le; 5 N</code>, and obstacle penetration <code>&le; 2 mm</code>.</p>
+          </div>
+          <div class="lp-mini-card">
+            <h4>2. Zero-Hint Visual Critique</h4>
+            <p>When an attempt fails, <code>argon.critique()</code> sends 20 rendered keyframes across 4 cameras plus the measured metrics to <code>gemini-4-argon</code> via multimodal <code>generateContent</code>. No passing coordinates are ever leaked in the prompt.</p>
+          </div>
+          <div class="lp-mini-card">
+            <h4>3. Typed Pydantic PlanPatch</h4>
+            <p>Argon returns a validated <code>CritiqueBody</code> citing exact failure keyframes (e.g. <code>attempt1_handover_front</code>) and a <code>PlanPatch</code> updating <code>handover_point_m</code>, <code>lift_height_m</code>, or clearances.</p>
+          </div>
+          <div class="lp-mini-card">
+            <h4>4. Human-in-the-Loop Control</h4>
+            <p>Operators can inspect collision outlines (<code>O</code>), switch to the moving gripper camera (<code>C</code>), or click <b>Edit plan / Break the plan</b> to place the handover behind the screens and watch Argon repair it live.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- HOW WE BUILT THE 3D GAUSSIAN SPLAT & COLLISION TWIN -->
+      <section id="lp-splat" class="lp-section">
+        <div class="lp-section-head">
+          <span class="lp-kicker">03 · Real-World Capture → 3D Gaussian Splat → RANSAC Collision Twin</span>
+          <h2>How We Built the 3D Desk &amp; Segmented Celsius Can from a 10.4 s Phone Video</h2>
+          <p>A 3D Gaussian Splat looks photorealistic, but MuJoCo cannot collide robot arms against fuzzy Gaussian clouds. Here is the exact 4-stage pipeline we ran at SHACK15 today to bridge pixels, 3D Gaussians, and millimeter-accurate collision boxes.</p>
+        </div>
+
+        <img src="assets/splat-pipeline.svg" alt="4-Stage Pipeline: 10.4s iPhone Capture -> Local pycolmap Sparse 3D Point Cloud -> Colab NVIDIA T4 CUDA gsplat -> RANSAC Rigid Collision Boxes in MuJoCo" class="lp-diagram">
+
+        <div class="lp-splat-showcase">
+          <figure class="lp-video-card">
+            <video id="lp-scan-video" controls playsinline loop muted preload="metadata" poster="assets/scan/0001.jpg" src="assets/desk-scan-blurred.mp4"></video>
+            <figcaption>
+              <b>Play the 10.4 s SHACK15 desk walkthrough (<code>IMG_1272.MOV</code>)</b> — 52 frames extracted at 5 fps. Attendee faces and background tables are blurred via macOS Apple Vision (<code>VNGeneratePersonSegmentationRequest</code> + <code>VNDetectFaceRectanglesRequest</code>) while keeping the desk, stacked monitors, iPad, phone stand, and Celsius can razor-sharp.
+            </figcaption>
+          </figure>
+          <div class="lp-angles-wrap">
+            <div class="lp-angles-title">8 Registered Camera Views Around the Desk (Click any angle to seek video):</div>
+            <div class="lp-angles-grid">
+              <button type="button" class="lp-angle-btn" data-lp-time="0.0"><img src="assets/scan/0001.jpg" alt="Frame 0001"><span>Frame #01 · 0.0s (Front-Left)</span></button>
+              <button type="button" class="lp-angle-btn" data-lp-time="1.4"><img src="assets/scan/0008.jpg" alt="Frame 0008"><span>Frame #08 · 1.4s (Front)</span></button>
+              <button type="button" class="lp-angle-btn" data-lp-time="2.8"><img src="assets/scan/0015.jpg" alt="Frame 0015"><span>Frame #15 · 2.8s (Front-Right)</span></button>
+              <button type="button" class="lp-angle-btn" data-lp-time="4.2"><img src="assets/scan/0022.jpg" alt="Frame 0022"><span>Frame #22 · 4.2s (Right Oblique)</span></button>
+              <button type="button" class="lp-angle-btn" data-lp-time="5.6"><img src="assets/scan/0029.jpg" alt="Frame 0029"><span>Frame #29 · 5.6s (Right Profile)</span></button>
+              <button type="button" class="lp-angle-btn" data-lp-time="7.0"><img src="assets/scan/0036.jpg" alt="Frame 0036"><span>Frame #36 · 7.0s (Top-Right)</span></button>
+              <button type="button" class="lp-angle-btn" data-lp-time="8.4"><img src="assets/scan/0043.jpg" alt="Frame 0043"><span>Frame #43 · 8.4s (Center-Right)</span></button>
+              <button type="button" class="lp-angle-btn" data-lp-time="9.8"><img src="assets/scan/0050.jpg" alt="Frame 0050"><span>Frame #50 · 9.8s (Center-Front)</span></button>
+            </div>
+            <div class="lp-tech-explainer">
+              <div>
+                <b>Local <code>pycolmap</code> &amp; Sparse 3D Points:</b> Runs on MacBook CPU (<code>capture/prepare_local.py</code>). SIFT matches visual corners across all <code>52/52</code> frames and triangulates <code>20,762</code> 3D points (filtered to <code>3,456</code> low-error starting points).
+              </div>
+              <div>
+                <b>Open-Source <code>gsplat</code> on Colab NVIDIA T4 GPU (Custom CUDA):</b> Each 3D Gaussian is a 32-byte 3D ellipsoid (position, 3D scale, quaternion rotation, color, opacity). Custom CUDA kernels train <code>68,192</code> Gaussians in <code>10.0 s</code> on an NVIDIA Tesla T4, cropped to <code>17,157</code> desk Gaussians (<code>desk.splat</code>) + <code>943</code> Celsius-can Gaussians (<code>celsius-can.splat</code>).
+              </div>
+              <div>
+                <b>2,000-Iteration RANSAC Plane Fit:</b> <code>capture/fit_collision_scene.py</code> fits planes to the tracked 3D points per panel (<code>1.6–3.7 mm</code> RMS error, inflated <code>8 mm</code>) to produce 5 solid MuJoCo collision boxes (<code>upper_screen</code>, <code>lower_screen</code>, <code>laptop_base</code>, <code>left_screen</code>, <code>left_base</code>).
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VERIFIED PROOF RUNS -->
+      <section id="lp-proof" class="lp-section">
+        <div class="lp-section-head">
+          <span class="lp-kicker">04 · Verified Live Proof Runs (With API &amp; MuJoCo Receipts)</span>
+          <h2>Three Real Repairs Verified in MuJoCo + Gemma 4 Local Pilot</h2>
+          <p>Every run below was executed with zero coordinate hints in the prompt. Click any run to replay its 3D trajectory, keyframes, and Argon critique in the viewer.</p>
+        </div>
+
+        <div class="lp-grid-2">
+          <article class="lp-proof-card">
+            <div class="lp-proof-head">
+              <div>
+                <span class="lp-tag">Default Demo · Run <code>20261025-134505</code></span>
+                <h3>Segmented Celsius Can (Right-to-Left Collision Repair)</h3>
+              </div>
+              <button type="button" class="primary" data-launch-run="20261025-134505" data-launch-mode="photo">Replay in 3D →</button>
+            </div>
+            <p class="lp-muted">Right ALOHA arm picks up the real scanned Celsius can at <code>(0.32, -0.18, 0.00)</code> and hands it to the left arm to place at <code>(-0.24, -0.23, 0.00)</code>. Argon call: <code>generateContent:VmreaqT5OOP3-8YP5I6isA0</code> (28,025 tokens in, 469 out, 12.22 s).</p>
+            <table class="lp-table">
+              <thead><tr><th>Metric</th><th>Attempt 1 (Unpatched)</th><th>Attempt 2 (Argon Patch)</th></tr></thead>
+              <tbody>
+                <tr><td>Handover point</td><td><code>(0.00, 0.21, 0.30)</code> inside screens</td><td><b><code>(0.00, -0.26, 0.24)</code></b> in front of screens</td></tr>
+                <tr><td>Arm vs. screens</td><td>0 N, 0 mm</td><td><b>0 N, 0 mm</b></td></tr>
+                <tr><td>Can inside obstacle</td><td class="bad">8.223 mm inside screen</td><td class="good"><b>0 mm</b></td></tr>
+                <tr><td>Can target error</td><td class="bad">14.2 cm off target</td><td class="good"><b>5.051 mm from target</b></td></tr>
+                <tr><td>MuJoCo Verdict</td><td class="bad"><b>FAIL</b> (handover blocked by screen)</td><td class="good"><b>PASS</b> (all checks green)</td></tr>
+              </tbody>
+            </table>
+          </article>
+
+          <article class="lp-proof-card">
+            <div class="lp-proof-head">
+              <div>
+                <span class="lp-tag">Screen Force Proof · Run <code>20261025-133036</code></span>
+                <h3>95.5 N Monitor Impact → Zero-Contact Hand-Over</h3>
+              </div>
+              <button type="button" class="lp-cta-secondary" data-launch-run="20261025-133036" data-launch-mode="gold">Replay in 3D →</button>
+            </div>
+            <p class="lp-muted">Attempt 1 actually placed the can within <code>5.6 mm</code> of the target—but plowed an arm through the monitor at <code>95.5 N</code>. Argon call: <code>generateContent:-GbeavXMIP6j_uMP68HCgAU</code> (27,319 tokens in, 615 out, 23.68 s).</p>
+            <table class="lp-table">
+              <thead><tr><th>Metric</th><th>Attempt 1 (Unpatched)</th><th>Attempt 2 (Argon Patch)</th></tr></thead>
+              <tbody>
+                <tr><td>Handover point</td><td><code>(0.00, 0.21, 0.30)</code> behind screens</td><td><b><code>(0.05, -0.26, 0.22)</code></b>, lift <code>0.14 m</code></td></tr>
+                <tr><td>Arm vs. screens</td><td class="bad">95.517 N · 2.873 mm inside</td><td class="good"><b>0 N · 0 mm</b></td></tr>
+                <tr><td>Can inside obstacle</td><td class="bad">0.82 mm inside</td><td class="good"><b>0 mm</b></td></tr>
+                <tr><td>Can target error</td><td>5.6 mm (would pass without obstacle check)</td><td class="good"><b>1.019 mm from target</b></td></tr>
+                <tr><td>MuJoCo Verdict</td><td class="bad"><b>FAIL</b> (arm hit &amp; penetrated screen)</td><td class="good"><b>PASS</b> (all checks green)</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </div>
+
+        <div class="lp-grid-2 lp-mt">
+          <article class="lp-card">
+            <span class="lp-tag">Google DeepMind Antigravity Managed Agent</span>
+            <h3>Cloud Sandbox Trajectory Screening (<code>managed_agent.py</code>)</h3>
+            <p>Verified live on the event key using <code>antigravity-preview-09-2026</code> (interaction <code>v1_ChdYMVRlYXNyNUgtR1k5TW9QbExPeXNRWRIXWDFUZWFzcjVILUdZOU1vUGxMT3lzUVk</code>, environment <code>7f5d85429dbab87fae101cc2c57117ce</code>, <code>call_1123966</code>): executes a 20-trial ±1 cm perturbed handover sweep in the cloud sandbox and verifies the candidate plan locally in MuJoCo (<code>3.74 mm</code> target error).</p>
+          </article>
+          <article class="lp-card">
+            <span class="lp-tag">Local Open-Weights Pilot · <code>training/</code></span>
+            <h3>Gemma 4 E4B Structured Repair Pilot</h3>
+            <p>Can a small local open model propose handover patches that pass MuJoCo? Across <b>12 held-out test cases</b> spanning 4 scene variants run locally through Ollama with our Pydantic JSON schema, <b>Gemma 4 E4B produced 12 / 12 valid JSON patches and 8 / 12 passed MuJoCo physics</b> zero-shot (with 36 repair pairs collected for LoRA fine-tuning).</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- TECH STACK -->
+      <section id="lp-stack" class="lp-section">
+        <div class="lp-section-head">
+          <span class="lp-kicker">05 · Full 6-Layer Architecture</span>
+          <h2>The Stack</h2>
+          <p>Built from scratch at SHACK15 on Oct 25, 2026 across three parallel sessions coordinated by frozen Pydantic contracts (<code>schemas.py</code> v1.0.3).</p>
+        </div>
+        <img src="assets/stack.svg" alt="ArgonTwin 6-layer stack: Capture, Reasoning, Physics, Contracts, Show, Host" class="lp-diagram">
+        <div class="lp-bottom-cta">
+          <div>
+            <h3>See the 3D Gaussian Splat, Collision Boxes, and Argon Loop in Action</h3>
+            <p>Orbit the reconstructed SHACK15 desk, toggle Gold / Solid / Photoreal modes, inspect the RANSAC collision surfaces, and step through Attempt 1 → Argon Critique → Attempt 2.</p>
+          </div>
+          <button type="button" class="primary lp-cta-big" data-launch-demo>Launch Interactive 3D Demo →</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <script type="module" src="app.js?v=38"></script>
   <script>
     (() => {
@@ -114,24 +347,68 @@
       const panel = document.getElementById("how-built");
       const closeBtn = document.getElementById("how-built-close");
       const vid = document.getElementById("how-built-video");
-      if (!btn || !panel) return;
-      const setOpen = (open) => {
-        panel.hidden = !open;
-        btn.setAttribute("aria-pressed", String(open));
-        if (!open && vid) vid.pause();
+      if (btn && panel) {
+        const setOpen = (open) => {
+          panel.hidden = !open;
+          btn.setAttribute("aria-pressed", String(open));
+          if (!open && vid) vid.pause();
+        };
+        btn.addEventListener("click", () => setOpen(panel.hidden));
+        if (closeBtn) closeBtn.addEventListener("click", () => setOpen(false));
+        panel.querySelectorAll(".scan-thumb").forEach((thumb) => {
+          thumb.addEventListener("click", () => {
+            if (!vid) return;
+            const t = parseFloat(thumb.dataset.time || "0");
+            vid.currentTime = t;
+            vid.play().catch(() => {});
+          });
+        });
+        window.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && !panel.hidden) setOpen(false);
+        });
+      }
+
+      // Landing page controller
+      const landing = document.getElementById("landing");
+      const openLandingBtn = document.getElementById("open-landing");
+      const lpVid = document.getElementById("lp-scan-video");
+      const params = new URLSearchParams(location.search);
+      // Open directly in 3D stage if ?demo=1, ?run=..., ?variant=..., or ?capture=1 is passed
+      const startInDemo = params.has("demo") || params.has("run") || params.has("variant") || params.has("capture");
+      const showLanding = (visible) => {
+        if (!landing) return;
+        landing.hidden = !visible;
+        if (!visible && lpVid) lpVid.pause();
+        window.dispatchEvent(new Event("resize"));
       };
-      btn.addEventListener("click", () => setOpen(panel.hidden));
-      if (closeBtn) closeBtn.addEventListener("click", () => setOpen(false));
-      panel.querySelectorAll(".scan-thumb").forEach((thumb) => {
-        thumb.addEventListener("click", () => {
-          if (!vid) return;
-          const t = parseFloat(thumb.dataset.time || "0");
-          vid.currentTime = t;
-          vid.play().catch(() => {});
+      showLanding(!startInDemo);
+
+      document.querySelectorAll("[data-launch-demo]").forEach((el) => {
+        el.addEventListener("click", () => showLanding(false));
+      });
+      document.querySelectorAll("[data-launch-run]").forEach((el) => {
+        el.addEventListener("click", async () => {
+          const runId = el.getAttribute("data-launch-run");
+          const mode = el.getAttribute("data-launch-mode");
+          showLanding(false);
+          if (runId && window.argonTwin?.replay) {
+            await window.argonTwin.replay(runId, 1);
+          }
+          if (mode) {
+            const modeBtn = document.querySelector(`#scan-modes [data-mode="${mode}"]`);
+            if (modeBtn && !modeBtn.disabled) modeBtn.click();
+          }
         });
       });
-      window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && !panel.hidden) setOpen(false);
+      if (openLandingBtn) {
+        openLandingBtn.addEventListener("click", () => showLanding(true));
+      }
+      document.querySelectorAll("[data-lp-time]").forEach((thumb) => {
+        thumb.addEventListener("click", () => {
+          if (!lpVid) return;
+          lpVid.currentTime = parseFloat(thumb.getAttribute("data-lp-time") || "0");
+          lpVid.play().catch(() => {});
+        });
       });
     })();
   </script>
