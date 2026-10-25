@@ -129,6 +129,8 @@ resize();
 
 // --- Data ------------------------------------------------------------------------
 
+const rolloutCache = new Map();
+
 async function getJSON(url, timeoutMs = 4000) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
@@ -709,9 +711,16 @@ async function showRollout(a, autoplay) {
     robotLayer.clear();
     state.bodies = [];
     state.rollout = null;
-    state.rolloutKey = keyId;
+    state.rolloutKey = null;
     try {
-      const log = await getJSON(`${state.base}attempt_${a.attempt}/${a.sim.rollout_path}`, 10000);
+      const url = `${state.base}attempt_${a.attempt}/${a.sim.rollout_path}`;
+      let log = rolloutCache.get(url);
+      if (!log) {
+        // Public motion logs are large; retain successful downloads when stepping back.
+        log = await getJSON(url, 60000);
+        rolloutCache.set(url, log);
+      }
+      state.rolloutKey = keyId;
       state.rollout = log;
       state.bodyNames = log.bodies.map((b) => b.name);
       for (const body of log.bodies) {
