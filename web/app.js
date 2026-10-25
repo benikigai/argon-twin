@@ -670,13 +670,13 @@ const REAL_POINT_COLOR = new THREE.Color("#8fd0e3");  // reconstructed data: coo
 const MODE_NOTES = {
   gold: "Gold: the simulation's own geometry drawn as dots and dotted outlines. Stylized, not captured from the video.",
   solid: "Solid: the simulation's geometry as plain surfaces.",
-  photo: "Photoreal: the desk as a Gaussian splat trained from the 10-second phone video, with the simulated arms on top.",
+  photo: "Photoreal: the desk as a Gaussian splat trained from the 10-second phone video (soft, with some floaters), with the simulated arms on top.",
 };
 
 function setCaption(extra) {
   if (extra !== undefined) captionText = extra;
   const real = realPoints && state.splatStyle === "gold"
-    ? " Blue dots are reconstructed from the video (alignment set by hand)."
+    ? " Blue dots are the desk reconstructed from the video, aligned to the sim table by fitting its plane and rim."
     : "";
   const base = MODE_NOTES[state.splatStyle] + real + (photoNote ? " " + photoNote : "");
   $("caption").textContent = [base, captionText].filter(Boolean).join(" ");

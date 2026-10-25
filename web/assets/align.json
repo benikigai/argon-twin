@@ -1,0 +1,6 @@
+{
+  "scale": 1,
+  "position": [0, 0, 0],
+  "rotation_deg": [0, 0, 0],
+  "note": "Identity: desk.splat is already in sim coordinates (table frame from runs/photoreal-20261025/table-frame.json)."
+}
