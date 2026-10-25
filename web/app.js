@@ -79,6 +79,7 @@ function resize() {
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
   for (const [role, m] of scanMaterials) m.uniforms.uMinPx.value = minDotPx(role);
+  if (typeof positionPhases === "function") positionPhases();
   heroCamera();
 }
 
@@ -906,6 +907,22 @@ const PHASE_TEXT = {
   done: (e) => (e.passed ? "Done: passed" : "Done: not passed"),
 };
 
+// The header wraps differently at every width, so measure it instead of guessing.
+function positionPhases() {
+  const list = $("phases");
+  if (list.hidden) return;
+  const stage = canvas.parentElement.getBoundingClientRect();
+  const bottoms = [".masthead", ".status"].map((sel) => {
+    const el = document.querySelector(sel);
+    return el && !el.hidden ? el.getBoundingClientRect().bottom - stage.top : 0;
+  });
+  list.style.top = `${Math.ceil(Math.max(...bottoms)) + 12}px`;
+}
+
+// Re-measure whenever the header changes size (buttons appear, fonts load, wrapping).
+new ResizeObserver(() => positionPhases()).observe(document.querySelector(".status"));
+new ResizeObserver(() => positionPhases()).observe(document.querySelector(".masthead"));
+
 function renderPhases() {
   const list = $("phases");
   const events = state.run?.phases ?? [];
@@ -916,6 +933,7 @@ function renderPhases() {
     const cls = [i === arr.length - 1 && live ? "now" : "", e.phase === "judged" ? (e.passed ? "pass" : "fail") : "", e.phase === "done" ? (e.passed ? "pass" : "fail") : ""].join(" ");
     return `<li class="${cls}">${escapeHtml((PHASE_TEXT[e.phase] ?? (() => e.phase))(e))}</li>`;
   }).join("");
+  positionPhases();
 }
 
 // --- Plan editor ---------------------------------------------------------------------

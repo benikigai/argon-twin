@@ -283,7 +283,7 @@ button.quiet:hover { color: var(--paper); border-color: transparent; }
 
 .phases {
   position: absolute;
-  top: 8rem;            /* below the masthead and the header buttons */
+  top: 8rem;            /* fallback; app.js measures the header and sets the real offset */
   left: 2rem;
   max-width: min(46rem, calc(100% - 24rem));
   list-style: none;
@@ -342,5 +342,5 @@ button.quiet:hover { color: var(--paper); border-color: transparent; }
 
 /* The plan editor and the camera frames share the right side; the editor wins. */
 .planner:not([hidden]) ~ .evidence { display: none !important; }
-@media (max-width: 900px) { .phases { top: 5.2rem; left: 1rem; max-width: calc(100% - 2rem); } }
+@media (max-width: 900px) { .phases { left: 1rem; max-width: calc(100% - 2rem); } }
 .scan-modes button:disabled { color: var(--dim); opacity: .6; cursor: not-allowed; }
