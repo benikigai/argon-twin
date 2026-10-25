@@ -65,7 +65,10 @@ def _read_manifest(run_id: str) -> Optional[RunManifest]:
     path = _run_dir(run_id) / "manifest.json"
     if not path.exists():
         return None
-    return RunManifest.model_validate_json(path.read_text())
+    try:
+        return RunManifest.model_validate_json(path.read_text())
+    except ValueError:
+        return None  # other tools keep their own manifest.json under runs/; not a loop run
 
 
 def _summary(run_id: str) -> RunSummary:

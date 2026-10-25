@@ -305,7 +305,7 @@ const meshCache = new Map();
 const ROLE_STYLE = {
   task:  { color: "#edeae2", opacity: 1, edges: null, emissive: "#3a352a" },
   prop:  { color: "#e3b341", opacity: 0.12, edges: 0.85 },
-  arm:   { color: "#23262c", opacity: 1, edges: 0.85 },
+  arm:   { color: "#3b3f47", opacity: 1, edges: 0.85 },
   table: { color: "#101216", opacity: 1, edges: 0.75 },
 };
 
@@ -340,7 +340,9 @@ function geomObject(g, role) {
       if (g.mesh_file) {
         const url = `assets/meshes/${g.mesh_file}`;
         if (!meshCache.has(url)) meshCache.set(url, new Promise((ok, bad) => stlLoader.load(url, ok, undefined, bad)));
-        meshCache.get(url).then((loaded) => { mesh.geometry = loaded; }).catch(() => {});
+        meshCache.get(url).then((loaded) => { mesh.geometry = loaded; }).catch(() => {
+          setCaption(`Some arm meshes didn't load (${g.mesh_file}).`);
+        });
       }
       geo = null;
       mesh.position.set(...g.pos);
@@ -600,7 +602,8 @@ async function main() {
   state.source = await detectSource();
   let runs = [];
   try { runs = await listRuns(); } catch { /* no runs yet */ }
-  const pick = runs.find((r) => r.state === "running") ?? runs.find((r) => r.attempts > 0);
+  const requested = new URLSearchParams(location.search).get("run");  // ?run=<id> picks a specific run
+  const pick = runs.find((r) => r.run_id === requested) ?? runs.find((r) => r.state === "running") ?? runs.find((r) => r.attempts > 0);
   if (pick) await loadRun(pick.run_id);
   render();
   await loadSplat();

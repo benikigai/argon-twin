@@ -15,37 +15,27 @@ Built at the [Gemini 4 Argon SF Hackathon](https://cerebralvalley.ai/events/~/e/
 ## How it works
 
 ```mermaid
-flowchart LR
-    V["Phone video<br/>capture/IMG_1272.MOV"]
+flowchart TB
+    V["Phone video of the desk"]
+    SPLAT["Desk scan on a Colab GPU<br/>COLMAP + gsplat (not finished)"]
+    RV["Viewer: recorded replay<br/>hosted on Vercel (later)"]
 
-    subgraph COLAB["Colab GPU (T4)"]
-        SPLAT["frames → COLMAP → gsplat<br/>cropped to the table"]
+    subgraph LOCAL["Live, on Ben's Mac (localhost:8000)"]
+        WB["Gemini 4 Argon<br/>builds the scene from the video"]
+        SIM["MuJoCo<br/>two ALOHA arms try the hand-over"]
+        J{"Measured verdict<br/>schemas.judge"}
+        C["Gemini 4 Argon<br/>explains the failure, patches the plan"]
+        RUN[("Run record")]
+        LV["Viewer: live"]
     end
 
-    subgraph LOCAL["Live backend: Ben's Mac, localhost:8000"]
-        WB["argon.build_world<br/>Gemini 4 Argon, long decode"]
-        SCENE["SceneSpec + HandoverPlan"]
-        SIM["sim.run_attempt<br/>MuJoCo + mink, two ALOHA arms"]
-        MET["AttemptMetrics<br/>(measured)"]
-        JUDGE{"schemas.judge<br/>thresholds in config.py"}
-        CRIT["argon.critique<br/>keyframes + metrics → PlanPatch"]
-        RUNS[("runs/RUN_ID/manifest.json")]
-        API["server.py · /api/runs"]
-        LIVEV["Viewer: LIVE"]
-    end
-
-    subgraph VERCEL["Vercel: public, recorded replay only"]
-        REPLAY[("web/replay/")]
-        REPV["Viewer: REPLAY (recorded time shown)"]
-    end
-
-    V --> SPLAT --> DSPLAT[("web/assets/desk.splat")]
-    V --> WB --> SCENE --> SIM --> MET --> JUDGE
-    JUDGE -- "FAIL" --> CRIT -- "apply_patch → next plan" --> SIM
-    JUDGE -- "PASS / FAIL recorded" --> RUNS --> API --> LIVEV
-    RUNS -- "export_replay.py" --> REPLAY --> REPV
-    DSPLAT --> LIVEV
-    DSPLAT --> REPV
+    V --> WB --> SIM --> J
+    J -- "fail" --> C --> SIM
+    J -- "every attempt" --> RUN --> LV
+    RUN -- "export_replay.py" --> RV
+    V --> SPLAT
+    SPLAT --> LV
+    SPLAT --> RV
 ```
 
 - **Pass/fail is deterministic.** `schemas.judge` checks measured MuJoCo metrics against fixed thresholds in `config.py`: hand-over completed, no drop, can within 3 cm of the target and at rest, no hard arm-table contact. Checks proposed by Argon are shown as extra information and never change the verdict.
@@ -57,11 +47,12 @@ flowchart LR
 | Part | Owner | Status |
 |---|---|---|
 | `schemas.py`, `config.py`: contracts, interfaces, judge, thresholds | Claude | Done, frozen at contract 1.0.0 |
-| `loop.py`, `server.py`, `export_replay.py` | Claude | Written; tested end to end with stand-in sim and Argon modules, not yet with the real ones |
-| `web/`: 3D viewer (rollout replay, splat in gold or true color, critique rail, filmstrip, LIVE/REPLAY labels) | Claude | Written; not yet run against a real rollout or splat |
-| `sim.py` + physics tests | Codex | In progress: loads and steps the real ALOHA model and produces genuine failed hand-over rollouts with 20 keyframe PNGs. No passing hand-over yet |
-| `capture/`: splat from `IMG_1272.MOV` | Codex | Reconstruction running on a Colab T4 (feature extraction and matching); splat training not started |
+| `loop.py`, `server.py`, `export_replay.py` | Claude | Committed. Tested end to end with stand-in sim and Argon modules; not yet run with the real ones together |
+| `web/`: viewer (stage, loop rail, MuJoCo verdict, critique subtitles, gold / photoreal / off scan modes, live vs replay label) | Claude | Committed. Checked in a browser with the real passing MANUAL rollout; scan modes checked only with a synthetic test splat, since no desk splat exists yet. Arms render with the real ALOHA meshes (`web/assets/meshes/`) |
+| `sim.py` + `tests/test_sim.py` | Codex | A hand-written (MANUAL) plan passes the MuJoCo hand-over with weld grasp assist, with 20 rendered keyframes (`runs/verified-manual/attempt-1`). 3 tests pass: nominal hand-over with exact repeatability, an unreachable hand-over that must fail, target-reach validation |
+| `capture/`: splat from `IMG_1272.MOV` | Codex | COLMAP registered 52 views, but the Colab runtime ended before a trained splat was exported. No usable splat yet; the viewer uses plain geometry |
 | `argon.py`, `managed_agent.py` | Antigravity | Files exist; integration not yet verified. A direct `gemini-4-argon` Interactions call was verified earlier |
+| `training/`: Gemma 4 pilot | Codex | Measured baseline only; fine-tuning in progress, no result yet (details below) |
 | Hosted page on Vercel | — | [argon-twin.vercel.app](https://argon-twin.vercel.app): TARGET PREVIEW (concept) is live. Recorded replay is not hosted yet |
 
 Everything in this repo was written during the event.
@@ -81,12 +72,20 @@ python export_replay.py <run_id>        # copy a finished run into web/replay/ f
 
 ## Known gaps
 
-- No passing hand-over yet, and `argon.py` / `managed_agent.py` haven't been run through `loop.py`, so there is no verified end-to-end run.
-- The splat reconstruction is still running; until it lands, the viewer draws a plain table.
+- The only passing hand-over uses a hand-written plan and weld grasp assist. `argon.py` / `managed_agent.py` haven't been run through `loop.py`, so there is no verified Argon loop yet.
+- No trained desk splat exists yet (the Colab runtime ended after camera registration); the viewer draws plain geometry.
 - The hosted page is a concept preview; recorded replay isn't hosted yet.
 - Splat-to-sim alignment is set by hand (`web/assets/align.json`).
-- If friction grasping proves unreliable, `sim.py` may attach the can with a weld; the viewer shows `grasp assist: weld` whenever that happens.
+- Grasping uses a weld: once a gripper closes on the can, a MuJoCo weld replaces fingertip contact. The viewer flags every attempt where this happens.
 - The world build is a long call (minutes), so the live demo runs the critique loop live and shows the world build's recorded result.
+
+## Gemma 4 pilot (in progress)
+
+Ben asked for a Gemma fine-tuning track. The question: can a small open model propose hand-over plans that pass MuJoCo, and does fine-tuning help?
+
+- **Data:** 36 training cases and 12 test cases, the test cases spread over 4 held-out scene variants (`runs/gemma-pilot`).
+- **Baseline (measured):** Gemma 4 E4B, base weights, run locally through Ollama with a JSON schema: 8 of 12 test plans passed MuJoCo; 12 of 12 were valid JSON.
+- **Fine-tuned (not measured yet):** adapter training on a Colab T4 is in progress. No fine-tuned result exists yet.
 
 ## Open-source parts we use (not built today)
 
@@ -99,5 +98,6 @@ python export_replay.py <run_id>        # copy a finished run into web/replay/ f
 
 - `gemini-4-argon` through the Gemini Interactions API
 - `antigravity-preview-09-2026` managed agent with `gemini-4-argon`
+- Gemma 4 E4B (base) via Ollama, locally, for the pilot above
 
 Full plan and contracts: [`docs/BUILD-SPEC.md`](docs/BUILD-SPEC.md).
