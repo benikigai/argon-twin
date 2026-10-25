@@ -13,28 +13,41 @@ from __future__ import annotations
 import json
 import threading
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 import config
 import loop
-from schemas import CONTRACT_VERSION, RunManifest
+from schemas import CONTRACT_VERSION, PlanPatch, RunManifest
 
 app = FastAPI(title="ArgonTwin", version=CONTRACT_VERSION)
 
+@app.exception_handler(RequestValidationError)
+async def _validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    # FastAPI's default handler echoes the rejected input, which can't be serialized when
+    # it is NaN or infinity. Report where and why, without the value.
+    errors = [{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": errors})
+
+
 _lock = threading.Lock()
-_live: dict[str, dict] = {}  # run_id -> {"state", "log", "error"}
+_live: dict[str, dict] = {}  # run_id -> {"state", "log", "error", "phase", "phases"}
 
 
 class StartRun(BaseModel):
+    """POST /api/runs body. Exactly one of scene or video."""
+
     scene: Optional[str] = None  # repo-relative path, e.g. examples/desk_manual.json
     video: Optional[str] = None  # repo-relative path, e.g. capture/IMG_1272.MOV
-    max_attempts: int = config.MAX_ATTEMPTS
+    initial_patch: Optional[PlanPatch] = None  # applied to the starting plan before attempt 1
+    max_attempts: int = Field(config.MAX_ATTEMPTS, ge=1, le=config.MAX_ATTEMPTS)
     sweep: bool = False
 
 
@@ -62,6 +75,8 @@ def _run_dir(run_id: str) -> Path:
 
 
 def _read_manifest(run_id: str) -> Optional[RunManifest]:
+    if run_id in _live and not (config.RUNS_DIR / run_id).is_dir():
+        return None  # started a moment ago; the worker hasn't created its folder yet
     path = _run_dir(run_id) / "manifest.json"
     if not path.exists():
         return None
@@ -104,44 +119,72 @@ def health() -> dict:
 def list_runs() -> list[RunSummary]:
     if not config.RUNS_DIR.exists():
         return []
-    ids = sorted((p.name for p in config.RUNS_DIR.iterdir() if p.is_dir()), reverse=True)
-    return [_summary(run_id) for run_id in ids]
+    summaries = [_summary(p.name) for p in config.RUNS_DIR.iterdir() if p.is_dir()]
+    # Newest first by the time the run recorded, not by directory name; live runs on top.
+    earliest = datetime.min.replace(tzinfo=timezone.utc)
+    summaries.sort(key=lambda r: (r.state == "running", r.created_at or earliest), reverse=True)
+    return summaries
 
 
 @app.get("/api/runs/{run_id}")
 def get_run(run_id: str) -> dict:
     manifest = _read_manifest(run_id)
     summary = _summary(run_id)
+    if run_id in _live and not (config.RUNS_DIR / run_id).is_dir():
+        input_path = None  # in-memory state only until the worker creates the run folder
+    else:
+        input_path = _run_dir(run_id) / "input.json"
+    live = _live.get(run_id, {})
     return {
         "summary": summary.model_dump(mode="json"),
         "manifest": manifest.model_dump(mode="json") if manifest else None,
-        "log": _live.get(run_id, {}).get("log", []),
-        "error": _live.get(run_id, {}).get("error"),
+        "input": json.loads(input_path.read_text()) if input_path and input_path.exists() else None,
+        "phase": live.get("phase"),        # latest {"phase", "attempt", ...} from loop.on_phase
+        "phases": live.get("phases", []),  # every phase event so far, in order
+        "log": live.get("log", []),
+        "error": live.get("error"),
     }
+
+
+@app.get("/api/scene")
+def get_scene(path: str) -> dict:
+    """Read-only: the scene and starting plan in a repo example file, for the plan editor."""
+    scene, plan = loop.load_manual(_repo_path(path))
+    return {"path": path, "scene": scene.model_dump(mode="json"), "plan": plan.model_dump(mode="json")}
 
 
 @app.post("/api/runs", response_model=RunSummary)
 def start_run(request: StartRun) -> RunSummary:
     if (request.scene is None) == (request.video is None):
         raise HTTPException(400, "give exactly one of scene or video")
+    patch = request.initial_patch
+    if patch is not None and all(v is None for v in patch.model_dump().values()):
+        patch = None
     scene_path = _repo_path(request.scene) if request.scene else None
     video_path = _repo_path(request.video) if request.video else None
     if not _lock.acquire(blocking=False):
         raise HTTPException(409, "a run is already in progress")
 
     run_id = datetime.now().strftime("%Y%m%d-%H%M%S")
-    state = {"state": "running", "log": [], "error": None}
+    state = {"state": "running", "log": [], "error": None, "phase": None, "phases": []}
     _live[run_id] = state
+
+    def on_phase(phase: str, detail: dict) -> None:
+        event = {"phase": phase, **detail}
+        state["phase"] = event
+        state["phases"].append(event)
 
     def work() -> None:
         try:
             loop.run_loop(
                 video_path=video_path,
                 scene_path=scene_path,
+                initial_patch=patch,
                 max_attempts=request.max_attempts,
                 sweep=request.sweep,
                 run_id=run_id,
                 progress=state["log"].append,
+                on_phase=on_phase,
             )
             state["state"] = "done"
         except Exception as exc:  # surfaced to the viewer, not swallowed

@@ -1,6 +1,6 @@
 """Frozen data contracts and module interfaces for ArgonTwin.
 
-Owner: integrator (Claude). CONTRACT_VERSION 1.0.0 is frozen: other owners code
+Owner: integrator (Claude). CONTRACT_VERSION 1.0.1 is frozen (1.0.1 only adds finite-number validation): other owners code
 against it and don't edit this file. Changes go through the integrator and bump
 the version.
 
@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 import config
 
-CONTRACT_VERSION = "1.0.0"
+CONTRACT_VERSION = "1.0.1"  # 1.0.1: reject NaN and infinity in every float field
 
 Vec3 = tuple[float, float, float]
 Quat = tuple[float, float, float, float]  # (w, x, y, z), MuJoCo order
@@ -44,7 +44,7 @@ Phase = Literal["approach", "grasp", "lift", "handover", "place", "settle"]
 
 
 class Strict(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
 
 # --- Errors ------------------------------------------------------------------

@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap">
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=8">
   <script type="importmap">
     {
       "imports": {
@@ -29,9 +29,33 @@
 
     <div class="status">
       <span id="source" class="source">Connecting</span>
+      <button id="closeup" type="button" aria-pressed="false">Gripper view</button>
       <button id="replay" type="button" disabled>Replay</button>
+      <button id="edit-plan" type="button" aria-expanded="false" aria-controls="planner" hidden>Edit plan</button>
       <button id="run" type="button" class="primary" hidden>Run the loop</button>
     </div>
+
+    <ol id="phases" class="phases" aria-label="Live run progress" aria-live="polite" hidden></ol>
+
+    <aside id="planner" class="planner" aria-label="Starting plan" hidden>
+      <h2>Starting plan</h2>
+      <p class="muted" id="planner-base">Loading the base plan</p>
+      <fieldset>
+        <legend>Handover point (m)</legend>
+        <label>x <input id="hp-x" type="number" step="0.01" min="-1.5" max="1.5" inputmode="decimal"></label>
+        <label>y <input id="hp-y" type="number" step="0.01" min="-1.5" max="1.5" inputmode="decimal"></label>
+        <label>z <input id="hp-z" type="number" step="0.01" min="0" max="0.8" inputmode="decimal"></label>
+      </fieldset>
+      <label class="single">Lift height (m) <input id="lift" type="number" step="0.01" min="0.03" max="0.4" inputmode="decimal"></label>
+      <p id="planner-diff" class="diff"></p>
+      <p id="planner-queue" class="queued" hidden></p>
+      <p id="planner-error" class="error" role="alert" hidden></p>
+      <div class="planner-actions">
+        <button id="break-plan" type="button">Break the plan</button>
+        <button id="reset-plan" type="button">Reset</button>
+        <button id="apply-run" type="button" class="primary">Apply and run</button>
+      </div>
+    </aside>
 
     <section id="verdict" class="verdict" aria-live="polite" hidden></section>
     <section id="subtitles" class="subtitles" aria-live="polite" hidden></section>
@@ -51,6 +75,6 @@
     <ol id="steps"></ol>
   </nav>
 
-  <script type="module" src="app.js?v=7"></script>
+  <script type="module" src="app.js?v=13"></script>
 </body>
 </html>

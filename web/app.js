@@ -3,7 +3,7 @@
 // (e.g. on Vercel) the viewer plays recorded runs from replay/ and says so.
 //
 // Keys: ← → step through the loop, space replays, T cycles the desk scan (gold, photoreal, off),
-// H returns to the front hero camera.
+// H returns to the front hero camera, C toggles the gripper close-up.
 
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
@@ -12,10 +12,13 @@ import { STLLoader } from "three/addons/loaders/STLLoader.js";
 const $ = (id) => document.getElementById(id);
 const GOLD = new THREE.Color("#e3b341");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-// The demo starts from a hand-written plan whose handover point is out of both arms' reach,
-// so attempt 1 fails for a visible reason and the loop has something real to fix.
-const DEMO_SCENE = "examples/desk_demo_bad_handover.json";
-const ARM_REACH_M = 0.7;  // rough ViperX reach from the arm base; used only for the on-screen note
+// Live runs start from this example's scene and plan, plus whatever the plan editor changed
+// (sent as initial_patch). The example file itself is never written.
+const BASE_SCENE = "examples/desk_manual.json";
+// "Break the plan" moves the handover point out of both arms' reach, so attempt 1 fails
+// for a visible, disclosed reason and the loop has something real to fix.
+const BREAK_HANDOVER = [1.2, 0.8, 0.6];
+const ARM_REACH_M = 0.7;  // rough ViperX reach from the arm base; used only for on-screen notes
 
 const state = {
   source: null,      // "api" | "replay"
@@ -31,6 +34,10 @@ const state = {
   frame: 0,
   playing: false,
   lastTick: 0,
+  pendingVerdict: null, // attempt whose verdict shows once its replay finishes
+  baseScene: null,      // { scene, plan } from BASE_SCENE
+  draft: null,          // { handover_point_m, lift_height_m } being edited
+  closeup: false,
 };
 
 // --- Three.js stage -------------------------------------------------------------
@@ -58,7 +65,8 @@ world.rotation.x = -Math.PI / 2;
 scene.add(world);
 const splatLayer = new THREE.Group();
 const robotLayer = new THREE.Group();
-world.add(splatLayer, robotLayer);
+const markerLayer = new THREE.Group();
+world.add(splatLayer, robotLayer, markerLayer);
 
 function resize() {
   const { clientWidth: w, clientHeight: h } = canvas.parentElement;
@@ -242,7 +250,10 @@ function renderVerdict(a) {
   const flags = [];
   if (a.sim.metrics.grasp_assist_used) flags.push("Grasp assist: the can is welded to the gripper once it closes");
   if (a.mode === "ARGON_INVALID") flags.push("Argon's fix failed validation, so the plan was kept");
-  if (a.mode === "MANUAL") flags.push("Plan written by hand");
+  if (a.mode === "MANUAL") flags.push("Scene and starting plan written by hand");
+  if (a.mode === "LIVE_ARGON") flags.push("Plan patched by Gemini 4 Argon in a live call");
+  const edited = state.run?.input?.initial_patch;
+  if (a.attempt === 1 && edited) flags.push(`Starting plan edited before the run: ${describePatch(edited)}`);
   const sc = state.run?.manifest?.scene;
   if (sc) {
     const dist = (b) => Math.hypot(...a.plan.handover_point_m.map((v, i) => v - b[i]));
@@ -263,6 +274,11 @@ function keyframeURL(a, k) {
   return `${state.base}attempt_${a.attempt}/${k.path}`;
 }
 
+function richText(text) {
+  // Escape, then show `code` spans from Argon's text as code.
+  return escapeHtml(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+}
+
 function renderCritique(a) {
   const subs = $("subtitles");
   const ev = $("evidence");
@@ -274,24 +290,38 @@ function renderCritique(a) {
       const [name, fmt] = PATCH_NAMES[k] ?? [k, String];
       return `<span>${escapeHtml(name)} <b>${escapeHtml(fmt(v))}</b></span>`;
     });
+  const u = c.usage;
+  const receipt = [
+    u.input_tokens != null ? `${u.input_tokens.toLocaleString()} in` : null,
+    u.output_tokens != null ? `${u.output_tokens.toLocaleString()} out` : null,
+    u.thought_tokens != null ? `${u.thought_tokens.toLocaleString()} thinking` : "thinking tokens not reported",
+    `${u.wall_time_s.toFixed(1)} s`,
+  ].filter(Boolean).join(", ");
+  const steps = c.body.diagnosis;
   subs.hidden = false;
-  subs.innerHTML = `<div class="speaker">Gemini 4 Argon</div>
-    <ol>${c.body.diagnosis.map((d) => `<li>${escapeHtml(d)}</li>`).join("")}</ol>
+  subs.innerHTML = `<div class="speaker">Gemini 4 Argon, live call</div>
+    <p class="lead">${richText(steps[0])}</p>
+    <details class="more">
+      <summary>Read the full critique (${steps.length} steps)</summary>
+      <ol>${steps.map((d) => `<li>${richText(d)}</li>`).join("")}</ol>
+      <p class="receipt">${escapeHtml(receipt)}. Response ${escapeHtml(c.interaction.interaction_id)}</p>
+    </details>
     <div class="change">${changes.join("")}</div>`;
 
   const cited = c.body.cited_keyframes
     .map((label) => a.sim.keyframes.find((k) => k.label === label))
     .filter(Boolean)
     .slice(0, 2);
-  ev.hidden = !cited.length;
+  ev.hidden = !cited.length || !$("planner").hidden;
   ev.innerHTML = cited.map((k) => `<figure><img alt="${escapeHtml(k.label)} frame from the ${escapeHtml(k.camera)} camera" src="${keyframeURL(a, k)}">
-    <figcaption>What Argon looked at: ${escapeHtml(frameName(k))}, ${k.t_s.toFixed(1)} s</figcaption></figure>`).join("");
+    <figcaption>Argon cited: ${escapeHtml(frameName(k))}, ${escapeHtml(k.camera.replace("_", " "))} camera, ${k.t_s.toFixed(1)} s</figcaption></figure>`).join("");
 }
 
 function renderAttemptEvidence(a) {
   const ev = $("evidence");
-  const pick = ["overhead", "front", "left_wrist", "right_wrist"]
-    .map((cam) => [...a.sim.keyframes].reverse().find((k) => k.camera === cam))
+  // Gripper views first: the handover as the right wrist sees it, then the left wrist's grasp.
+  const find = (phase, cam) => a.sim.keyframes.find((k) => k.phase === phase && k.camera === cam);
+  const pick = [find("handover", "right_wrist"), find("grasp", "left_wrist"), find("handover", "overhead")]
     .filter(Boolean)
     .slice(0, 2);
   ev.hidden = !pick.length;
@@ -305,13 +335,17 @@ async function goTo(i) {
   const step = state.steps[state.current];
   renderRail();
   if (step.kind === "attempt") {
-    renderVerdict(step.attempt);
     renderCritique(null);
     renderAttemptEvidence(step.attempt);
+    renderMarkers(step.attempt);
+    holdVerdict(step.attempt);
     await showRollout(step.attempt, true);
+    if (!state.playing) releaseVerdict();
   } else if (step.kind === "critique") {
     $("verdict").hidden = true;
+    state.pendingVerdict = null;
     renderCritique(step.attempt);
+    renderMarkers(step.attempt, step.attempt.critique.body.patch.handover_point_m);
     await showRollout(step.attempt, false);
     seekToCited(step.attempt);
   } else {
@@ -408,6 +442,7 @@ async function showRollout(a, autoplay) {
     try {
       const log = await getJSON(`${state.base}attempt_${a.attempt}/${a.sim.rollout_path}`, 10000);
       state.rollout = log;
+      state.bodyNames = log.bodies.map((b) => b.name);
       for (const body of log.bodies) {
         const group = new THREE.Group();
         const role = roleOf(body.name);
@@ -563,39 +598,21 @@ $("scan-modes").addEventListener("click", (e) => {
 });
 const SCAN_ORDER = ["gold", "photo", "off"];
 
-$("replay").onclick = () => {
+$("replay").onclick = async () => {
   const step = state.steps[state.current];
-  if (step && step.kind !== "pending") showRollout(step.attempt, true);
+  if (!step || step.kind === "pending") return;
+  if (step.kind === "attempt") holdVerdict(step.attempt);
+  await showRollout(step.attempt, true);
 };
 
-$("run").onclick = async () => {
-  $("run").disabled = true;
-  try {
-    const res = await fetch("/api/runs", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scene: DEMO_SCENE }),
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.detail ?? res.status);
-    await loadRun(body.run_id);
-    state.current = 0;
-    render();
-    heroCamera();
-    pollLive();
-  } catch (err) {
-    $("source").textContent = `Couldn't start a run: ${err.message}`;
-  } finally {
-    $("run").disabled = false;
-  }
-};
-
+$("run").onclick = () => startRun();
 window.addEventListener("keydown", (e) => {
   if (e.target.closest("input, textarea")) return;
   if (e.key === "ArrowRight") goTo(state.current + 1);
   else if (e.key === "ArrowLeft") goTo(state.current - 1);
   else if (e.key === " ") { e.preventDefault(); $("replay").click(); }
-  else if (e.key.toLowerCase() === "h") heroCamera();
+  else if (e.key.toLowerCase() === "h") { setCloseup(false); }
+  else if (e.key.toLowerCase() === "c") setCloseup(!state.closeup);
   else if (e.key.toLowerCase() === "t") setScanMode(SCAN_ORDER[(SCAN_ORDER.indexOf(state.splatStyle) + 1) % 3]);
 });
 
@@ -605,10 +622,268 @@ async function pollLive() {
     const before = state.steps.filter((s) => s.kind !== "pending").length;
     state.run = await getJSON(`/api/runs/${state.runId}`);
     render();
+    renderPhases();
     const now = state.steps.filter((s) => s.kind !== "pending").length;
     if (now !== before) goTo(now - 1);
   }
   render();
+  renderPhases();
+  renderPlanner();
+}
+
+
+// --- Verdict timing ------------------------------------------------------------------
+// The verdict for an attempt appears after its replay finishes, so the audience watches
+// the arms first and then reads what MuJoCo measured.
+
+function holdVerdict(a) {
+  state.pendingVerdict = reduceMotion ? null : a;
+  if (reduceMotion) { renderVerdict(a); return; }
+  $("verdict").hidden = true;
+}
+
+function releaseVerdict() {
+  if (!state.pendingVerdict) return;
+  renderVerdict(state.pendingVerdict);
+  state.pendingVerdict = null;
+}
+
+// --- Markers -------------------------------------------------------------------------
+// Target ring (green), the plan's handover point (gold), and the editor's draft (white).
+
+const markerMat = {
+  target: new THREE.MeshBasicMaterial({ color: "#7fd1a8", transparent: true, opacity: 0.9, side: THREE.DoubleSide }),
+  handover: new THREE.MeshBasicMaterial({ color: "#e3b341" }),
+  patched: new THREE.MeshBasicMaterial({ color: "#7fd1a8" }),
+  draft: new THREE.MeshBasicMaterial({ color: "#edeae2", wireframe: true }),
+};
+
+function pinMarker(point, mat, radius) {
+  const g = new THREE.Group();
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(radius, 20, 14), mat);
+  ball.position.set(...point);
+  const stem = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(point[0], point[1], 0), new THREE.Vector3(...point)]),
+    new THREE.LineDashedMaterial({ color: mat.color, dashSize: 0.02, gapSize: 0.015 }),
+  );
+  stem.computeLineDistances();
+  g.add(ball, stem);
+  return g;
+}
+
+function renderMarkers(a, patchedPoint = null) {
+  markerLayer.clear();
+  const sc = state.run?.manifest?.scene ?? state.baseScene?.scene;
+  if (sc) {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.04, 48), markerMat.target);
+    ring.position.set(sc.target_m[0], sc.target_m[1], 0.003);
+    markerLayer.add(ring);
+  }
+  if (a) markerLayer.add(pinMarker(a.plan.handover_point_m, markerMat.handover, 0.018));
+  if (patchedPoint) markerLayer.add(pinMarker(patchedPoint, markerMat.patched, 0.018));
+  if (!$("planner").hidden && state.draft) markerLayer.add(pinMarker(state.draft.handover_point_m, markerMat.draft, 0.024));
+}
+
+function currentAttempt() {
+  const step = state.steps[state.current];
+  return step && step.kind !== "pending" ? step.attempt : null;
+}
+
+// --- Gripper close-up ----------------------------------------------------------------
+
+// The close-up follows a real gripper body from the rollout: whichever gripper is
+// closest to the task object in the current frame (the one holding or reaching for it).
+function bodyWorld(name) {
+  const i = (state.bodyNames ?? []).indexOf(name);
+  return i < 0 ? null : state.bodies[i].getWorldPosition(new THREE.Vector3());
+}
+
+function closeupTarget() {
+  const task = state.run?.manifest?.scene?.task_object ?? "can";
+  const obj = bodyWorld(task);
+  const grippers = (state.bodyNames ?? []).filter((n) => /gripper_base$/.test(n)).map(bodyWorld).filter(Boolean);
+  if (!grippers.length) return obj;
+  if (!obj) return grippers[0];
+  grippers.sort((a, b) => a.distanceTo(obj) - b.distanceTo(obj));
+  return grippers[0].clone().lerp(obj, 0.5);  // frame the fingers and the can together
+}
+
+function setCloseup(on) {
+  state.closeup = on;
+  $("closeup").setAttribute("aria-pressed", String(on));
+  if (!on) { heroCamera(); return; }
+  const target = closeupTarget();
+  if (!target) { state.closeup = false; $("closeup").setAttribute("aria-pressed", "false"); return; }
+  camera.position.set(target.x, target.y + 0.2, target.z + 0.48);
+  controls.target.copy(target);
+  controls.update();
+}
+
+function followCloseup() {
+  if (!state.closeup) return;
+  const target = closeupTarget();
+  if (!target) return;
+  const shift = target.clone().sub(controls.target);
+  camera.position.add(shift);
+  controls.target.copy(target);
+}
+$("closeup").onclick = () => setCloseup(!state.closeup);
+
+// --- Live progress -------------------------------------------------------------------
+
+const PHASE_TEXT = {
+  running: (e) => `Attempt ${e.attempt} running`,
+  judged: (e) => `Attempt ${e.attempt} ${e.passed ? "passed" : "failed"}`,
+  diagnosing: () => "Argon diagnosing",
+  patched: (e) => `Patch: ${Object.keys(e.changes ?? {}).map((k) => PATCH_NAMES[k]?.[0] ?? k).join(", ").toLowerCase() || "no change"}`,
+  invalid: () => "Argon output invalid",
+  done: (e) => (e.passed ? "Done: passed" : "Done: not passed"),
+};
+
+function renderPhases() {
+  const list = $("phases");
+  const events = state.run?.phases ?? [];
+  if (state.source !== "api" || !events.length) { list.hidden = true; return; }
+  list.hidden = false;
+  const live = state.run.summary?.state === "running";
+  list.innerHTML = events.slice(-6).map((e, i, arr) => {
+    const cls = [i === arr.length - 1 && live ? "now" : "", e.phase === "judged" ? (e.passed ? "pass" : "fail") : "", e.phase === "done" ? (e.passed ? "pass" : "fail") : ""].join(" ");
+    return `<li class="${cls}">${escapeHtml((PHASE_TEXT[e.phase] ?? (() => e.phase))(e))}</li>`;
+  }).join("");
+}
+
+// --- Plan editor ---------------------------------------------------------------------
+
+const HP_LIMIT = { x: [-1.5, 1.5], y: [-1.5, 1.5], z: [0, 0.8] };
+
+async function loadBaseScene() {
+  if (state.source !== "api") return;
+  try {
+    state.baseScene = await getJSON(`/api/scene?path=${encodeURIComponent(BASE_SCENE)}`);
+    resetDraft();
+    $("edit-plan").hidden = false;
+    $("planner-base").textContent = `Starts from ${BASE_SCENE}. Edits apply to the next run only.`;
+  } catch (err) {
+    $("planner-base").textContent = `Couldn't load the base plan (${err.message}).`;
+  }
+}
+
+function resetDraft() {
+  const p = state.baseScene.plan;
+  state.draft = { handover_point_m: [...p.handover_point_m], lift_height_m: p.lift_height_m };
+  syncInputs();
+}
+
+function syncInputs() {
+  const d = state.draft;
+  ["x", "y", "z"].forEach((axis, i) => { $(`hp-${axis}`).value = d.handover_point_m[i].toFixed(2); });
+  $("lift").value = d.lift_height_m.toFixed(2);
+  renderPlanner();
+}
+
+function readInputs() {
+  const errors = [];
+  const num = (id, [lo, hi], label) => {
+    const el = $(id);
+    const v = Number(el.value);
+    const ok = el.value.trim() !== "" && Number.isFinite(v) && v >= lo && v <= hi;
+    el.setAttribute("aria-invalid", String(!ok));
+    if (!ok) errors.push(`${label} must be a number from ${lo} to ${hi}`);
+    return v;
+  };
+  const hp = ["x", "y", "z"].map((axis) => num(`hp-${axis}`, HP_LIMIT[axis], `Handover ${axis}`));
+  const lift = num("lift", [0.03, 0.4], "Lift height");
+  if (!errors.length) state.draft = { handover_point_m: hp, lift_height_m: lift };
+  return errors;
+}
+
+function draftPatch() {
+  if (!state.baseScene || !state.draft) return {};
+  const base = state.baseScene.plan;
+  const patch = {};
+  if (state.draft.handover_point_m.some((v, i) => Math.abs(v - base.handover_point_m[i]) > 1e-9)) patch.handover_point_m = state.draft.handover_point_m;
+  if (Math.abs(state.draft.lift_height_m - base.lift_height_m) > 1e-9) patch.lift_height_m = state.draft.lift_height_m;
+  return patch;
+}
+
+function describePatch(patch) {
+  const parts = Object.entries(patch).map(([k, v]) => {
+    const [name, fmt] = PATCH_NAMES[k] ?? [k, String];
+    return `${name} ${fmt(v)}`;
+  });
+  return parts.length ? parts.join(", ") : "No changes from the base plan";
+}
+
+function renderPlanner() {
+  if (!state.baseScene || !state.draft) return;
+  const patch = draftPatch();
+  const sc = state.baseScene.scene;
+  const dist = (b) => Math.hypot(...state.draft.handover_point_m.map((v, i) => v - b[i]));
+  const nearest = Math.min(dist(sc.left_arm_base_m), dist(sc.right_arm_base_m));
+  const reach = nearest > ARM_REACH_M ? ` Handover point is ${nearest.toFixed(2)} m from the nearest arm base, beyond its reach.` : "";
+  $("planner-diff").textContent = describePatch(patch) + "." + reach;
+
+  const running = state.source === "api" && state.run?.summary?.state === "running";
+  const queue = $("planner-queue");
+  queue.hidden = !(running && Object.keys(patch).length);
+  if (!queue.hidden) queue.textContent = `Queued for the next run: ${describePatch(patch)}. The current run keeps its own plan.`;
+  $("apply-run").disabled = running;
+  $("apply-run").textContent = running ? "Apply when this run ends" : "Apply and run";
+  renderMarkers(currentAttempt());
+}
+
+function onInput() {
+  const errors = readInputs();
+  const box = $("planner-error");
+  box.hidden = !errors.length;
+  box.textContent = errors.join(". ");
+  renderPlanner();
+}
+["hp-x", "hp-y", "hp-z", "lift"].forEach((id) => $(id).addEventListener("input", onInput));
+
+$("edit-plan").onclick = () => {
+  const open = $("planner").hidden;
+  $("planner").hidden = !open;
+  $("edit-plan").setAttribute("aria-expanded", String(open));
+  $("evidence").hidden = open || $("evidence").hidden;
+  renderPlanner();
+};
+$("break-plan").onclick = () => {
+  state.draft = { ...state.draft, handover_point_m: [...BREAK_HANDOVER] };
+  syncInputs();
+};
+$("reset-plan").onclick = () => { resetDraft(); onInput(); };
+$("apply-run").onclick = () => startRun();
+
+async function startRun() {
+  const errors = state.draft ? readInputs() : [];
+  if (errors.length) { onInput(); return; }
+  const patch = draftPatch();
+  const body = { scene: BASE_SCENE };
+  if (Object.keys(patch).length) body.initial_patch = patch;
+  $("run").disabled = true;
+  $("apply-run").disabled = true;
+  try {
+    const res = await fetch("/api/runs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+    const reply = await res.json();
+    if (!res.ok) {
+      const detail = Array.isArray(reply.detail) ? reply.detail.map((d) => `${d.loc.slice(1).join(".")}: ${d.msg}`).join("; ") : reply.detail;
+      throw new Error(detail ?? res.status);
+    }
+    await loadRun(reply.run_id);
+    state.current = 0;
+    render();
+    renderPhases();
+    setCloseup(false);
+    pollLive();
+  } catch (err) {
+    $("planner-error").hidden = false;
+    $("planner-error").textContent = `Couldn't start a run: ${err.message}`;
+    $("source").textContent = `Couldn't start a run: ${err.message}`;
+  } finally {
+    $("run").disabled = false;
+    renderPlanner();
+  }
 }
 
 // --- Main ------------------------------------------------------------------------------
@@ -622,27 +897,36 @@ function tick(now) {
       if (state.frame >= state.rollout.frames.length) {
         state.frame = state.rollout.frames.length - 1;
         state.playing = false;
+        releaseVerdict();
         break;
       }
     }
     applyFrame(state.frame);
   }
+  followCloseup();
   controls.update();
   renderer.render(scene, camera);
   requestAnimationFrame(tick);
 }
 
-canvas.addEventListener("dblclick", heroCamera);
+canvas.addEventListener("dblclick", () => setCloseup(false));
 
 async function main() {
   state.source = await detectSource();
   let runs = [];
   try { runs = await listRuns(); } catch { /* no runs yet */ }
   const requested = new URLSearchParams(location.search).get("run");  // ?run=<id> picks a specific run
-  const pick = runs.find((r) => r.run_id === requested) ?? runs.find((r) => r.state === "running") ?? runs.find((r) => r.attempts > 0);
+  // Default: a requested run, else a live one, else the newest complete repair story
+  // (passed after more than one attempt), else the newest run with any attempt.
+  const pick = runs.find((r) => r.run_id === requested)
+    ?? runs.find((r) => r.state === "running")
+    ?? runs.find((r) => r.passed && r.attempts > 1)
+    ?? runs.find((r) => r.attempts > 0);
   if (pick) await loadRun(pick.run_id);
   render();
+  renderPhases();
   heroCamera();
+  loadBaseScene();
   await loadSplat();
   requestAnimationFrame(tick);
   if (state.steps.length) await goTo(0);

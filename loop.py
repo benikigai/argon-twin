@@ -6,6 +6,12 @@ optionally, managed_agent.robustness_sweep. Pass/fail comes from schemas.judge.
 
     python loop.py --scene examples/desk_manual.json     # MANUAL start, Argon critiques
     python loop.py --video capture/IMG_1272.MOV          # Argon builds the world first
+    python loop.py --scene examples/desk_manual.json --patch '{"handover_point_m": [1.2, 0.8, 0.6]}'
+
+An optional initial PlanPatch is applied to the starting plan before attempt 1.
+Every run writes its own input snapshot (runs/<id>/input.json); example files are
+never written, and nothing changes the plan of a run once it has started except
+Argon's critique between attempts.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ from schemas import (
     ExecutionMode,
     HandoverPlan,
     InteractionRef,
+    PlanPatch,
     RunManifest,
     SceneSpec,
     SupplementalCheck,
@@ -35,11 +42,24 @@ from schemas import (
 )
 
 Progress = Callable[[str], None]
+# on_phase(phase, detail). Phases, in order per attempt:
+#   "running"    {"attempt": n}
+#   "judged"     {"attempt": n, "passed": bool, "failed_checks": [...]}
+#   "diagnosing" {"attempt": n}
+#   "patched"    {"attempt": n, "changes": {field: value}}  (plan for attempt n + 1)
+#   "invalid"    {"attempt": n, "error": str}                (Argon output failed validation)
+# and once at the end: "done" {"passed": bool, "attempts": n}
+PhaseHook = Callable[[str, dict], None]
 
 
 def _say(progress: Optional[Progress], message: str) -> None:
     if progress:
         progress(message)
+
+
+def _phase(on_phase: Optional[PhaseHook], phase: str, **detail) -> None:
+    if on_phase:
+        on_phase(phase, detail)
 
 
 def load_manual(scene_path: Path) -> tuple[SceneSpec, HandoverPlan]:
@@ -69,10 +89,12 @@ def run_loop(
     video_path: Optional[Path] = None,
     scene_path: Optional[Path] = None,
     max_attempts: int = config.MAX_ATTEMPTS,
+    initial_patch: Optional[PlanPatch] = None,
     sweep: bool = False,
     critique: bool = True,
     run_id: Optional[str] = None,
     progress: Optional[Progress] = None,
+    on_phase: Optional[PhaseHook] = None,
 ) -> RunManifest:
     if (video_path is None) == (scene_path is None):
         raise ValueError("pass exactly one of video_path or scene_path")
@@ -100,6 +122,20 @@ def run_loop(
         (run_dir / "world_build.json").write_text(world_build.model_dump_json(indent=2))
         _say(progress, f"World built: {len(scene.objects)} objects, interaction {previous.interaction_id}")
 
+    changed = {}
+    if initial_patch is not None:
+        changed = {k: v for k, v in initial_patch.model_dump().items() if v is not None}
+        plan = apply_patch(plan, initial_patch)
+        _say(progress, "Starting plan edited before the run: " + ", ".join(f"{k}={v}" for k, v in changed.items()))
+
+    # Per-run snapshot of exactly what this run started from.
+    (run_dir / "input.json").write_text(json.dumps({
+        "source": {"scene_path": str(scene_path) if scene_path else None, "video_path": str(video_path) if video_path else None},
+        "initial_patch": changed or None,
+        "scene": scene.model_dump(mode="json"),
+        "plan": plan.model_dump(mode="json"),
+    }, indent=2))
+
     problems = sim.validate_scene(scene)
     if problems:
         _say(progress, "Scene problems: " + "; ".join(problems))
@@ -124,6 +160,7 @@ def run_loop(
         attempt_dir = run_dir / f"attempt_{n}"
         attempt_dir.mkdir()
         _say(progress, f"Attempt {n}: simulating ({mode})…")
+        _phase(on_phase, "running", attempt=n)
         sim_attempt = sim.run_attempt(scene, plan, attempt=n, out_dir=attempt_dir)
         verdict = judge(sim_attempt.metrics)
         result = AttemptResult(
@@ -136,7 +173,8 @@ def run_loop(
         )
         attempts.append(result)
         write_manifest(run_dir, manifest(False))
-        _say(progress, f"Attempt {n}: {'PASS' if verdict.passed else 'FAIL — ' + '; '.join(verdict.failed_checks)}")
+        _say(progress, f"Attempt {n}: {'PASS' if verdict.passed else 'FAIL: ' + '; '.join(verdict.failed_checks)}")
+        _phase(on_phase, "judged", attempt=n, passed=verdict.passed, failed_checks=verdict.failed_checks)
 
         if verdict.passed:
             passed = True
@@ -146,11 +184,13 @@ def run_loop(
 
         argon = importlib.import_module("argon")
         _say(progress, f"Argon is critiquing attempt {n}…")
+        _phase(on_phase, "diagnosing", attempt=n)
         try:
             crit = argon.critique(scene, plan, result, attempt_dir=attempt_dir, previous=previous)
         except ArgonInvalidOutput as exc:
             # Spec: keep the previous plan and mark the next attempt ARGON_INVALID, then stop.
             _say(progress, f"Argon output invalid after retry ({exc}); rerunning with the same plan, marked ARGON_INVALID.")
+            _phase(on_phase, "invalid", attempt=n, error=str(exc))
             mode = "ARGON_INVALID"
             continue
         attempts[-1] = result.model_copy(update={"critique": crit})
@@ -159,6 +199,7 @@ def run_loop(
         mode = crit.mode
         write_manifest(run_dir, manifest(False))
         _say(progress, "Argon: " + " → ".join(crit.body.diagnosis))
+        _phase(on_phase, "patched", attempt=n, changes={k: v for k, v in crit.body.patch.model_dump().items() if v is not None})
 
     sweep_result = None
     if passed and sweep:
@@ -171,6 +212,7 @@ def run_loop(
     write_manifest(run_dir, final)
     (config.RUNS_DIR / "latest.txt").write_text(run_id)
     _say(progress, f"Run {run_id}: {'PASSED' if passed else 'NOT PASSED'} after {len(attempts)} attempt(s)")
+    _phase(on_phase, "done", passed=passed, attempts=len(attempts))
     return final
 
 
@@ -182,10 +224,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--max-attempts", type=int, default=config.MAX_ATTEMPTS)
     parser.add_argument("--sweep", action="store_true", help="run the managed-agent robustness sweep after a pass")
     parser.add_argument("--no-critique", action="store_true", help="simulate attempt 1 only, no Argon calls")
+    parser.add_argument("--patch", type=str, default=None, help="initial PlanPatch as JSON, applied before attempt 1")
     args = parser.parse_args(argv)
+    patch = PlanPatch.model_validate_json(args.patch) if args.patch else None
     manifest = run_loop(
         video_path=args.video,
         scene_path=args.scene,
+        initial_patch=patch,
         max_attempts=args.max_attempts,
         sweep=args.sweep,
         critique=not args.no_critique,

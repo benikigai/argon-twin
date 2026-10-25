@@ -28,6 +28,8 @@ def export(run_id: str) -> None:
         shutil.rmtree(dst)
     dst.mkdir(parents=True)
     shutil.copy2(src / "manifest.json", dst / "manifest.json")
+    if (src / "input.json").exists():
+        shutil.copy2(src / "input.json", dst / "input.json")
     for attempt in manifest.attempts:
         a_src = src / f"attempt_{attempt.attempt}"
         a_dst = dst / f"attempt_{attempt.attempt}"
