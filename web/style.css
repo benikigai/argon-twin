@@ -343,3 +343,4 @@ button.quiet:hover { color: var(--paper); border-color: transparent; }
 /* The plan editor and the camera frames share the right side; the editor wins. */
 .planner:not([hidden]) ~ .evidence { display: none !important; }
 @media (max-width: 900px) { .phases { top: 5.2rem; left: 1rem; max-width: calc(100% - 2rem); } }
+.scan-modes button:disabled { color: var(--dim); opacity: .6; cursor: not-allowed; }

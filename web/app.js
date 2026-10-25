@@ -2,7 +2,7 @@
 // Live data comes from the local server (/api/runs). When that isn't reachable
 // (e.g. on Vercel) the viewer plays recorded runs from replay/ and says so.
 //
-// Keys: ← → step through the loop, space replays, T cycles the desk scan (gold, photoreal, off),
+// Keys: ← → step through the loop, space replays, T cycles the view (gold, solid, photoreal when ready),
 // H returns to the front hero camera, C toggles the gripper close-up.
 
 import * as THREE from "three";
@@ -14,7 +14,9 @@ const GOLD = new THREE.Color("#e3b341");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 // Live runs start from this example's scene and plan, plus whatever the plan editor changed
 // (sent as initial_patch). The example file itself is never written.
-const BASE_SCENE = "examples/desk_manual.json";
+// Its scene.handover_point_m is out of reach on purpose, so a passing handover point never
+// appears in what Argon's critique sees; the run itself uses the plan's handover point.
+const BASE_SCENE = "examples/desk_live_base.json";
 // "Break the plan" moves the handover point out of both arms' reach, so attempt 1 fails
 // for a visible, disclosed reason and the loop has something real to fix.
 const BREAK_HANDOVER = [1.2, 0.8, 0.6];
@@ -27,7 +29,7 @@ const state = {
   base: "",
   steps: [],         // [{ kind: "attempt" | "critique", attempt }]
   current: 0,
-  splatStyle: "gold",
+  splatStyle: "gold",  // view mode: "gold" | "solid" | "photo"
   rollout: null,
   rolloutKey: null,
   bodies: [],
@@ -38,7 +40,10 @@ const state = {
   baseScene: null,      // { scene, plan } from BASE_SCENE
   draft: null,          // { handover_point_m, lift_height_m } being edited
   closeup: false,
+  renderStyle: "scan",  // "scan" (gold dots) | "solid" | "photo" (trained splat, when present)
 };
+
+const scanMaterials = new Map();  // gold-scan point materials by role
 
 // --- Three.js stage -------------------------------------------------------------
 
@@ -73,6 +78,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  for (const [role, m] of scanMaterials) m.uniforms.uMinPx.value = minDotPx(role);
   heroCamera();
 }
 
@@ -383,6 +389,147 @@ function roleOf(bodyName) {
   return "prop";
 }
 
+// --- Gold scan style -----------------------------------------------------------------
+// The physics twin drawn the way a LiDAR scan looks: surfaces sampled into dots,
+// dotted outlines on simple shapes, a dot-grid floor, and one slow sweep of light.
+// It is a rendering of the simulation's own geometry, not data captured from the video.
+
+const SCAN_DENSITY = { arm: 110000, task: 90000, prop: 40000, table: 14000 };  // dots per m²
+const SCAN_COLOR = { arm: "#ffd56b", task: "#fff6e3", prop: "#f0c45a", table: "#a47f2c" };
+const sweep = { value: -10 };
+
+const scanVertex = `
+  uniform float uSize; uniform float uSweep; uniform float uMinPx;
+  varying float vGlow; varying float vFade;
+  void main() {
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    vec4 mv = viewMatrix * wp;
+    gl_Position = projectionMatrix * mv;
+    float d = wp.y - uSweep;
+    vGlow = exp(-d * d / 0.0006);
+    vFade = clamp(1.45 - (-mv.z) / 3.6, 0.45, 1.0);
+    // Never smaller than uMinPx device pixels, so distant surfaces still read on a projector.
+    gl_PointSize = max(uMinPx, uSize * (1.0 + 1.2 * vGlow) * (300.0 / -mv.z));
+  }`;
+const scanFragment = `
+  uniform vec3 uColor; varying float vGlow; varying float vFade;
+  void main() {
+    vec2 c = gl_PointCoord - 0.5;
+    float r = dot(c, c);
+    if (r > 0.25) discard;
+    float a = smoothstep(0.25, 0.02, r);
+    // The sweep brightens dots toward pale gold; everything else stays the base color.
+    vec3 col = mix(uColor * (0.7 + 0.3 * vFade), vec3(1.0, 0.94, 0.78), vGlow * 0.75);
+    gl_FragColor = vec4(col, a * (0.55 + 0.35 * vFade + 0.3 * vGlow));
+  }`;
+
+// Smallest dot in device pixels: about 2.2 px at 720 px tall, scaled with the canvas height.
+// (scanMaterials is declared near the top so resize() can update it before the scene loads.)
+function minDotPx(role) {
+  const h = canvas.clientHeight || 720;
+  const base = Math.min(2.6, Math.max(1.4, 2.2 * h / 720));
+  return (role === "table" ? base * 0.75 : base) * Math.min(window.devicePixelRatio, 2);
+}
+
+function scanMaterial(role) {
+  if (!scanMaterials.has(role)) {
+    scanMaterials.set(role, new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color(SCAN_COLOR[role]) },
+        uSize: { value: { arm: 0.013, task: 0.016, prop: 0.011, table: 0.009 }[role] },
+        uMinPx: { value: minDotPx(role) },
+        uSweep: sweep,
+      },
+      vertexShader: scanVertex,
+      fragmentShader: scanFragment,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.NormalBlending,  // overlapping dots stay gold instead of adding up to white
+    }));
+  }
+  return scanMaterials.get(role);
+}
+
+// Black stand-ins keep dots on the far side of a body from showing through it.
+const occluderMaterial = new THREE.MeshBasicMaterial({ color: "#000000", polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2 });
+
+function sampleSurface(geometry, perM2, cap = 24000) {
+  const geo = geometry.index ? geometry.toNonIndexed() : geometry;
+  const pos = geo.attributes.position;
+  const tris = pos.count / 3;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  const areas = new Float32Array(tris);
+  let total = 0;
+  for (let t = 0; t < tris; t++) {
+    a.fromBufferAttribute(pos, 3 * t); b.fromBufferAttribute(pos, 3 * t + 1); c.fromBufferAttribute(pos, 3 * t + 2);
+    total += areas[t] = b.clone().sub(a).cross(c.clone().sub(a)).length() / 2;
+  }
+  const n = Math.max(40, Math.min(cap, Math.round(total * perM2)));
+  const out = new Float32Array(n * 3);
+  const cdf = new Float32Array(tris);
+  let acc = 0;
+  for (let t = 0; t < tris; t++) cdf[t] = (acc += areas[t] / total);
+  for (let i = 0; i < n; i++) {
+    const u = Math.random();
+    let lo = 0, hi = tris - 1;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (cdf[mid] < u) lo = mid + 1; else hi = mid; }
+    a.fromBufferAttribute(pos, 3 * lo); b.fromBufferAttribute(pos, 3 * lo + 1); c.fromBufferAttribute(pos, 3 * lo + 2);
+    let r1 = Math.random(), r2 = Math.random();
+    if (r1 + r2 > 1) { r1 = 1 - r1; r2 = 1 - r2; }
+    const p = a.clone().add(b.clone().sub(a).multiplyScalar(r1)).add(c.clone().sub(a).multiplyScalar(r2));
+    out.set([p.x, p.y, p.z], 3 * i);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.BufferAttribute(out, 3));
+  return g;
+}
+
+function scanParts(geo, role, withOutline) {
+  const parts = new THREE.Group();
+  parts.userData.scan = true;
+  parts.add(new THREE.Points(sampleSurface(geo, SCAN_DENSITY[role]), scanMaterial(role)));
+  parts.add(new THREE.Mesh(geo, occluderMaterial));
+  if (withOutline) {
+    const line = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo, 25),
+      new THREE.LineDashedMaterial({ color: SCAN_COLOR[role], dashSize: 0.006, gapSize: 0.006, transparent: true, opacity: 0.9 }),
+    );
+    line.computeLineDistances();
+    parts.add(line);
+  }
+  return parts;
+}
+
+function applyRenderStyle() {
+  const scan = state.renderStyle === "scan";
+  robotLayer.traverse((o) => {
+    if (o.userData.scan) o.visible = scan;
+    if (o.userData.solid) o.visible = !scan;
+  });
+  floorDots.visible = scan;
+}
+
+// Dot-grid floor under the table, fading with distance.
+const floorDots = (() => {
+  const pts = [], col = [];
+  for (let x = -1.4; x <= 1.4001; x += 0.05) {
+    for (let y = -1.4; y <= 1.4001; y += 0.05) {
+      const r = Math.hypot(x, y);
+      if (r > 1.4) continue;
+      pts.push(x, y, -0.74);
+      const k = 0.45 * (1 - r / 1.4);
+      col.push(0.89 * k, 0.70 * k, 0.26 * k);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  const dots = new THREE.Points(g, new THREE.PointsMaterial({ size: 0.006, vertexColors: true, transparent: true, depthWrite: false }));
+  dots.visible = false;
+  return dots;
+})();
+world.add(floorDots);
+
 function geomObject(g, role) {
   const style = ROLE_STYLE[role];
   const mat = new THREE.MeshStandardMaterial({
@@ -394,6 +541,29 @@ function geomObject(g, role) {
     metalness: role === "arm" ? 0.35 : 0.05,
   });
   const s = g.size;
+  const obj = new THREE.Group();
+  obj.position.set(...g.pos);
+  obj.quaternion.set(g.quat[1], g.quat[2], g.quat[3], g.quat[0]);
+  const scanOn = state.renderStyle === "scan";
+
+  if (g.type === "mesh") {
+    const solid = new THREE.Mesh(new THREE.BufferGeometry(), mat);
+    solid.userData.solid = true;
+    solid.visible = !scanOn;
+    obj.add(solid);
+    if (g.mesh_file) {
+      const url = `assets/meshes/${g.mesh_file}`;
+      if (!meshCache.has(url)) meshCache.set(url, new Promise((ok, bad) => stlLoader.load(url, ok, undefined, bad)));
+      meshCache.get(url).then((loaded) => {
+        solid.geometry = loaded;
+        const parts = scanParts(loaded, role, false);
+        parts.visible = state.renderStyle === "scan";
+        obj.add(parts);
+      }).catch(() => setCaption(`Some arm meshes didn't load (${g.mesh_file}).`));
+    }
+    return obj;
+  }
+
   let geo;
   switch (g.type) {
     case "box": geo = new THREE.BoxGeometry(2 * s[0], 2 * s[1], 2 * s[2]); break;
@@ -401,33 +571,22 @@ function geomObject(g, role) {
     case "ellipsoid": geo = new THREE.SphereGeometry(1, 24, 16).scale(s[0], s[1], s[2]); break;
     case "capsule": geo = new THREE.CapsuleGeometry(s[0], 2 * s[1], 8, 16).rotateX(Math.PI / 2); break;
     case "cylinder": geo = new THREE.CylinderGeometry(s[0], s[0], 2 * s[1], 64).rotateX(Math.PI / 2); break;
-    case "mesh": {
-      const mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat);
-      if (g.mesh_file) {
-        const url = `assets/meshes/${g.mesh_file}`;
-        if (!meshCache.has(url)) meshCache.set(url, new Promise((ok, bad) => stlLoader.load(url, ok, undefined, bad)));
-        meshCache.get(url).then((loaded) => { mesh.geometry = loaded; }).catch(() => {
-          setCaption(`Some arm meshes didn't load (${g.mesh_file}).`);
-        });
-      }
-      geo = null;
-      mesh.position.set(...g.pos);
-      mesh.quaternion.set(g.quat[1], g.quat[2], g.quat[3], g.quat[0]);
-      return mesh;
-    }
     default:
-      return null; // planes are not drawn; the scanned desk is the floor
+      return null; // planes are not drawn; the floor is drawn separately
   }
-  const obj = new THREE.Group();
-  obj.add(new THREE.Mesh(geo, mat));
+  const solid = new THREE.Group();
+  solid.userData.solid = true;
+  solid.add(new THREE.Mesh(geo, mat));
   if (style.edges) {
-    obj.add(new THREE.LineSegments(
+    solid.add(new THREE.LineSegments(
       new THREE.EdgesGeometry(geo, 25),
       new THREE.LineBasicMaterial({ color: GOLD, transparent: true, opacity: style.edges }),
     ));
   }
-  obj.position.set(...g.pos);
-  obj.quaternion.set(g.quat[1], g.quat[2], g.quat[3], g.quat[0]);
+  solid.visible = !scanOn;
+  const parts = scanParts(geo, role, role !== "task");
+  parts.visible = scanOn;
+  obj.add(solid, parts);
   return obj;
 }
 
@@ -453,6 +612,7 @@ async function showRollout(a, autoplay) {
         robotLayer.add(group);
         state.bodies.push(group);
       }
+      applyRenderStyle();
       const boxesOnly = log.bodies.every((b) => b.geoms.every((g) => g.type !== "mesh"));
       setCaption(boxesOnly ? "Arms drawn as simple boxes here; the camera frames show the real ALOHA meshes." : "");
     } catch (err) {
@@ -499,23 +659,26 @@ function play() {
 let splatBuffer = null;
 let splatAlign = { scale: 1, position: [0, 0, 0], rotation_deg: [0, 0, 0] };
 let captionText = "";
-let goldPoints = null;   // THREE.Points built from the splat file
+let realPoints = null;   // centers of the trained splat, drawn as reconstructed points
 let photoViewer = null;  // Gaussian splatting renderer, loaded on first use
 let photoNote = "";
 
-const SCAN_URL = "assets/desk.splat";
-const SCAN_NOTES = {
-  gold: "Desk scanned from a 10-second phone video, drawn as gold points.",
-  photo: "Desk scanned from a 10-second phone video, rendered as Gaussian splats.",
-  off: "Desk scan hidden.",
+const SCAN_URL = "assets/desk.splat";  // a trained Gaussian splat of the desk; absent until training finishes
+const REAL_POINT_COLOR = new THREE.Color("#8fd0e3");  // reconstructed data: cool blue, never gold
+
+const MODE_NOTES = {
+  gold: "Gold: the simulation's own geometry drawn as dots and dotted outlines. Stylized, not captured from the video.",
+  solid: "Solid: the simulation's geometry as plain surfaces.",
+  photo: "Photoreal: the desk as a Gaussian splat trained from the 10-second phone video, with the simulated arms on top.",
 };
 
 function setCaption(extra) {
   if (extra !== undefined) captionText = extra;
-  const scan = splatBuffer
-    ? `${SCAN_NOTES[state.splatStyle]}${state.splatStyle === "off" ? "" : " Alignment set by hand."}${photoNote ? " " + photoNote : ""}`
-    : "Desk scan still being reconstructed.";
-  $("caption").textContent = [scan, captionText].filter(Boolean).join(" ");
+  const real = realPoints && state.splatStyle === "gold"
+    ? " Blue dots are reconstructed from the video (alignment set by hand)."
+    : "";
+  const base = MODE_NOTES[state.splatStyle] + real + (photoNote ? " " + photoNote : "");
+  $("caption").textContent = [base, captionText].filter(Boolean).join(" ");
 }
 
 function applyAlign(obj) {
@@ -524,37 +687,38 @@ function applyAlign(obj) {
   obj.rotation.set(...splatAlign.rotation_deg.map(THREE.MathUtils.degToRad));
 }
 
+function setPhotoAvailability(ready) {
+  const btn = $("scan-modes").querySelector('[data-mode="photo"]');
+  btn.disabled = !ready;
+  btn.title = ready ? "Show the trained Gaussian splat of the desk" : "No trained desk splat loaded.";
+  btn.textContent = ready ? "Photoreal" : "Photoreal (not ready)";
+}
+
 async function loadSplat() {
+  setPhotoAvailability(false);
   try {
     const res = await fetch(SCAN_URL);
     if (!res.ok) throw new Error(String(res.status));
     splatBuffer = await res.arrayBuffer();
     try { splatAlign = { ...splatAlign, ...(await getJSON("assets/align.json")) }; } catch { /* identity until aligned */ }
-    $("scan-modes").hidden = false;
-    await setScanMode("gold");
+    buildRealPoints();
+    setPhotoAvailability(true);
   } catch {
-    /* no scan yet: the rollout's own table is drawn instead */
+    /* no trained splat yet: Photoreal stays disabled and says why */
   }
-  setCaption();
+  await setScanMode(state.splatStyle);
 }
 
-function buildGoldPoints() {
+function buildRealPoints() {
   const n = Math.floor(splatBuffer.byteLength / 32);
   const f32 = new Float32Array(splatBuffer);
-  const u8 = new Uint8Array(splatBuffer);
   const pos = new Float32Array(n * 3);
-  const col = new Float32Array(n * 3);
-  for (let i = 0; i < n; i++) {
-    pos[i * 3] = f32[i * 8]; pos[i * 3 + 1] = f32[i * 8 + 1]; pos[i * 3 + 2] = f32[i * 8 + 2];
-    const lum = 0.3 + 0.7 * (0.299 * u8[i * 32 + 24] + 0.587 * u8[i * 32 + 25] + 0.114 * u8[i * 32 + 26]) / 255;
-    col[i * 3] = GOLD.r * lum; col[i * 3 + 1] = GOLD.g * lum; col[i * 3 + 2] = GOLD.b * lum;
-  }
+  for (let i = 0; i < n; i++) { pos[i * 3] = f32[i * 8]; pos[i * 3 + 1] = f32[i * 8 + 1]; pos[i * 3 + 2] = f32[i * 8 + 2]; }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
-  goldPoints = new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.0035, vertexColors: true, transparent: true, opacity: 0.9, sizeAttenuation: true }));
-  applyAlign(goldPoints);
-  splatLayer.add(goldPoints);
+  realPoints = new THREE.Points(geo, new THREE.PointsMaterial({ color: REAL_POINT_COLOR, size: 0.003, transparent: true, opacity: 0.8, depthWrite: false }));
+  applyAlign(realPoints);
+  splatLayer.add(realPoints);
 }
 
 async function ensurePhotoViewer() {
@@ -569,34 +733,32 @@ async function ensurePhotoViewer() {
 }
 
 async function setScanMode(mode) {
-  if (!splatBuffer) return;
-  state.splatStyle = mode;
-  for (const b of $("scan-modes").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
-  if (mode === "gold" && !goldPoints) buildGoldPoints();
+  if (mode === "photo" && !splatBuffer) mode = state.splatStyle === "photo" ? "gold" : state.splatStyle;
+  photoNote = "";
   if (mode === "photo") {
     try {
       await ensurePhotoViewer();
-      photoNote = "";
     } catch (err) {
-      // Say what happened instead of quietly showing something else.
-      photoNote = `Photoreal renderer didn't load (${err.message}); showing gold points.`;
-      state.splatStyle = "gold";
-      if (!goldPoints) buildGoldPoints();
+      photoNote = `The photoreal renderer didn't load (${err.message}), so this is the gold view.`;
+      mode = "gold";
     }
   }
-  if (goldPoints) goldPoints.visible = state.splatStyle === "gold";
-  if (photoViewer) photoViewer.visible = state.splatStyle === "photo";
-  for (const b of $("scan-modes").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.mode === state.splatStyle));
+  state.splatStyle = mode;
+  state.renderStyle = mode === "gold" ? "scan" : "solid";
+  applyRenderStyle();
+  if (realPoints) realPoints.visible = mode === "gold";
+  if (photoViewer) photoViewer.visible = mode === "photo";
+  for (const b of $("scan-modes").querySelectorAll("button")) b.setAttribute("aria-pressed", String(b.dataset.mode === mode));
   setCaption();
 }
 
 // --- Controls ---------------------------------------------------------------------------
 
 $("scan-modes").addEventListener("click", (e) => {
-  const mode = e.target.closest("button")?.dataset.mode;
-  if (mode) setScanMode(mode);
+  const btn = e.target.closest("button");
+  if (btn && !btn.disabled) setScanMode(btn.dataset.mode);
 });
-const SCAN_ORDER = ["gold", "photo", "off"];
+const SCAN_ORDER = ["gold", "solid", "photo"];
 
 $("replay").onclick = async () => {
   const step = state.steps[state.current];
@@ -613,7 +775,11 @@ window.addEventListener("keydown", (e) => {
   else if (e.key === " ") { e.preventDefault(); $("replay").click(); }
   else if (e.key.toLowerCase() === "h") { setCloseup(false); }
   else if (e.key.toLowerCase() === "c") setCloseup(!state.closeup);
-  else if (e.key.toLowerCase() === "t") setScanMode(SCAN_ORDER[(SCAN_ORDER.indexOf(state.splatStyle) + 1) % 3]);
+  else if (e.key.toLowerCase() === "t") {
+    const next = SCAN_ORDER.slice(SCAN_ORDER.indexOf(state.splatStyle) + 1).concat(SCAN_ORDER)
+      .find((m) => m !== state.splatStyle && (m !== "photo" || splatBuffer));
+    setScanMode(next);
+  }
 });
 
 async function pollLive() {
@@ -902,6 +1068,13 @@ function tick(now) {
       }
     }
     applyFrame(state.frame);
+  }
+  // One slow sweep of light up through the scene every 6 s (off for reduced motion).
+  if (state.renderStyle === "scan" && !reduceMotion) {
+    const t = (now / 1000) % 6;
+    sweep.value = t < 3.2 ? -0.02 + (t / 3.2) * 0.75 : -10;
+  } else {
+    sweep.value = -10;
   }
   followCloseup();
   controls.update();
