@@ -65,7 +65,7 @@ On the Three.js viewer: the splat of Ben's real desk, the two arms overlaid, and
 
 ### Primary proof run: `20261025-134505` (default)
 
-The default demo: the viewer's root URL opens this run. Receipts: `runs/20261025-134505/verification.json` and `runs/celsius-variant/HANDOFF.md` on the demo machine; the run itself (manifest, input, receipt, keyframes, rollout, with local paths removed) ships in `web/replay/20261025-134505/`, which a fresh clone opens by default, labeled as a replay.
+The default demo: the viewer at `/demo` (locally `/demo.html`) opens this run, and the landing page at `/` leads with a clip of it. Receipts: `runs/20261025-134505/verification.json` and `runs/celsius-variant/HANDOFF.md` on the demo machine; the run itself (manifest, input, receipt, keyframes, rollout, with local paths removed) ships in `web/replay/20261025-134505/`, which a fresh clone opens by default, labeled as a replay.
 
 - **Start:** `examples/desk_celsius.json`, started live from the viewer (Apply and run) with the hand-over point edited to `[0.00, 0.21, 0.30]` m, inside the fitted screen region. The scene's own `handover_point_m` is deliberately out of both arms' reach, so the critique input contains no passing hand-over point.
 - **The real can:** the task object is the Celsius can at its captured position `[0.34063638, 0.18702933, 0]` m. The right arm picks it up (`pickup_arm: "right"`, contract 1.0.3) and the left arm receives it and places it near `(-0.15, -0.28, 0)` m. In Photoreal, the can's own 943 captured Gaussians (segmented from the desk scan, with scale, rotation and opacity intact) move with the simulated can through pickup, hand-over and place; the background splat has the can removed (`desk-without-celsius.splat`, 976 Gaussians removed from the 17,157-Gaussian scan; `runs/celsius-variant/assets/extraction.json`).
@@ -89,6 +89,8 @@ The previous default, still available at `?run=20261025-133036`. Receipts: `runs
 - **Attempt 2 (`LIVE_ARGON`): PASS** at 1.019 mm, all obstacle metrics zero; an independent re-run passes with the same metrics. Weld assist used.
 
 ### Viewer design
+
+The viewer lives at `/demo`; `/` is the landing page (section 5, Hosting).
 
 - **One stage, not a control panel.** The 3D view fills the screen: the photoreal splat of the desk with the arms and objects replayed in it. No slider column, no KPI wall.
 - **Attempt filmstrip along the bottom:** `Attempt 1 ✗ arm hit screen` → `Argon critique` → `Attempt 2 ✓ on target, no contact`. Clicking a card replays that attempt on the stage.
@@ -230,6 +232,7 @@ def run_loop(*, video_path: Path | None, scene_path: Path | None = None,
 
 ### Hosting
 
+- **Routes:** `/` is the landing page (`web/index.html`, `web/landing.css`): a clip of run `20261025-134505` (the failure, Argon's critique, the Gold, Solid and Photoreal views, the pass), its receipts, sim vs twin, the fail → fix → pass trio, "Where this goes", and a link to the viewer. `/demo` is the 3D viewer (`web/demo.html`; Vercel serves it as `/demo` through `cleanUrls` in `vercel.json`, locally it's `/demo.html`), opening in Photoreal; `?view=gold|solid` overrides that. Older links keep working: `/` with `?run=`, `?variant=`, `?capture=`, `?demo=` or `?view=` forwards to `demo.html` with the same query. The Gemma comparison panel (`web/compare.js`) mounts on the viewer's status bar and loads only when the local API answers.
 - **Live backend:** `uvicorn server:app --port 8000` on a local machine (`http://127.0.0.1:8000`). Live runs start here; MuJoCo and Argon calls only ever run here.
 - **Vercel now:** `https://argon-twin.vercel.app` serves the verified Celsius replay from `web/`, labeled with its recording time. The recorded failure, Argon critique and passing attempt are interactive.
 - **Hosted boundary (`web/` only):** the public viewer never calls Gemini or runs MuJoCo and holds no secrets. New live runs and Gemma comparisons require the local server.
@@ -356,7 +359,7 @@ CI: a GitHub Actions workflow runs `pytest` on every push (to do).
 
 1. `python sim.py examples/desk_manual.json` runs one hand-over attempt and prints a `SimAttempt`; `pytest` passes offline.
 2. `python loop.py --video capture/IMG_1272.MOV` produces a `WorldBuild` from Argon and at least one failed then one passed attempt, written as a `RunManifest` under `runs/`.
-3. `uvicorn server:app --port 8000` → `http://127.0.0.1:8000` shows the splat, both arms, and replays each attempt with Argon's critique beside it.
+3. `uvicorn server:app --port 8000` → `http://127.0.0.1:8000` shows the landing page, and `http://127.0.0.1:8000/demo.html` shows the splat, both arms, and replays each attempt with Argon's critique beside it.
 4. Pulling the network cable switches the viewer to `REPLAY` with the label visible.
 5. README has the "built today" table matching the repo.
 
