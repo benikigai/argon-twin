@@ -1,0 +1,160 @@
+{
+  "additionalProperties": false,
+  "description": "Partial update to a HandoverPlan. None means unchanged.",
+  "properties": {
+    "grasp_height_offset_m": {
+      "anyOf": [
+        {
+          "maximum": 0.05,
+          "minimum": -0.05,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Grasp Height Offset M"
+    },
+    "approach_yaw_deg": {
+      "anyOf": [
+        {
+          "maximum": 90.0,
+          "minimum": -90.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approach Yaw Deg"
+    },
+    "pregrasp_clearance_m": {
+      "anyOf": [
+        {
+          "maximum": 0.2,
+          "minimum": 0.02,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pregrasp Clearance M"
+    },
+    "lift_height_m": {
+      "anyOf": [
+        {
+          "maximum": 0.4,
+          "minimum": 0.03,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Lift Height M"
+    },
+    "handover_point_m": {
+      "anyOf": [
+        {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Handover Point M"
+    },
+    "handover_yaw_offset_deg": {
+      "anyOf": [
+        {
+          "maximum": 90.0,
+          "minimum": -90.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Handover Yaw Offset Deg"
+    },
+    "gripper_close_delay_s": {
+      "anyOf": [
+        {
+          "maximum": 2.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Gripper Close Delay S"
+    },
+    "release_delay_s": {
+      "anyOf": [
+        {
+          "maximum": 2.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Release Delay S"
+    },
+    "release_height_m": {
+      "anyOf": [
+        {
+          "maximum": 0.15,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Release Height M"
+    },
+    "max_speed_m_s": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0.02,
+          "maximum": 1.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Speed M S"
+    }
+  },
+  "title": "PlanPatch",
+  "type": "object",
+  "minProperties": 1
+}

@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      # The test suite exercises physics without creating a renderer.
-      MUJOCO_GL: disable
+      MUJOCO_GL: osmesa
+      ARGON_GEMMA_SERVING_DIR: ${{ github.workspace }}/tests/fixtures/gemma-serving
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -29,6 +29,8 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
+      - name: Install software rendering
+        run: sudo apt-get update && sudo apt-get install -y libosmesa6
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
       - name: Run tests
