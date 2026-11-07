@@ -19,7 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      MUJOCO_GL: egl
+      # The test suite exercises physics without creating a renderer.
+      MUJOCO_GL: disable
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
